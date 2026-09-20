@@ -1,0 +1,9 @@
+# Force LF for container-consumed text files (Windows host — CRLF breaks nginx & shell scripts)
+*.sh text eol=lf
+*.conf text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.py text eol=lf
+*.env* text eol=lf
+Makefile text eol=lf
+Dockerfile text eol=lf

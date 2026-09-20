@@ -1,0 +1,18 @@
+# Environment & secrets (T1.1 — strictly excluded)
+.env
+*.pem
+*.key
+serviceAccountKey.json
+
+# Local media & dependencies
+media/
+node_modules/
+
+# TLS placeholder certs (generated locally, never committed)
+nginx/certs/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+db.sqlite3
