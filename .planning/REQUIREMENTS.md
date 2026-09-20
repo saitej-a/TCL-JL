@@ -154,6 +154,37 @@ Deferred to future post-MVP release.
 - Mapped to phases: 43
 - Unmapped: 0 ✓
 
+## Sub-Phase Traceability
+
+Phases are decomposed into decimal sub-phases (directories under `.planning/phases/`) as the discuss/plan/execute unit. Phase-level mappings above remain the canonical requirement boundary; this table maps sub-phases to requirements and plans.
+
+| Sub-phase | Requirements | Plans |
+|-----------|--------------|-------|
+| 1.1 Containerization & Compose Topology | — (infrastructure) | 01-01 |
+| 1.2 Django Settings, Health Probes & CI | — (infrastructure) | 01-02, 01-03 |
+| 2.1 Custom User Model & Password Hashing | AUTH-01 | 02-01 |
+| 2.2 Registration, JWT & Account Lifecycle | AUTH-02, AUTH-03, AUTH-04, AUTH-05, AUTH-06 | 02-02, 02-03 |
+| 3.1 Candidate Profile Model & Status Machine | PROF-01, PROF-02, PROF-03 | 03-01 |
+| 3.2 Profile API & Privacy Boundaries | PROF-04 | 03-02 |
+| 4.1 Timeline Model & Atomic Status Sync | TIME-01, TIME-02 | 04-01 |
+| 4.2 Timeline API, IDOR Defense & Dashboard | TIME-03, TIME-04, TIME-05 | 04-02 |
+| 5.1 Forum Models & Deletion Semantics | COMM-03, COMM-04, COMM-05 | 05-01 |
+| 5.2 Feed, Comments & Voting Endpoints | COMM-01, COMM-02, COMM-06, COMM-07, COMM-08 | 05-02, 05-03 |
+| 6.1 Notification & Device Models | NOTIF-01 | 06-01 |
+| 6.2 Device Registration & FCM Push | NOTIF-02, NOTIF-03, NOTIF-04, NOTIF-05, NOTIF-06 | 06-02, 06-03 |
+| 7.1 Analytics Aggregation & Privacy Suppression | ANAL-03, ANAL-04 | 07-01 |
+| 7.2 Analytics Endpoints & Redis Caching | ANAL-01, ANAL-02, ANAL-05 | 07-02 |
+| 8.1 Report Model & Scam Heuristics | MOD-01, MOD-02, MOD-03, MOD-04 | 08-01, 08-02 |
+| 8.2 Admin Triage & Ban Workflow | MOD-05, MOD-06 | 08-03 |
+| 9.1 SPA Foundation & API Client | UI-01, UI-02 | 09-01 |
+| 9.2 Auth, Onboarding & Layout Views | UI-01, UI-04 | 09-02 |
+| 9.3 Dashboard, Timeline & Feed Views | UI-03 | 09-03 |
+| 9.4 Post, Analytics, Notifications & PWA | UI-05 | 09-04 |
+| 10.1 Seed Data & E2E Journeys | Full system verification | 10-01 |
+| 10.2 Security Audits, Hardening & Signoff | Full system verification | 10-02 |
+
+Note: UI-01 (responsive SPA) spans sub-phases 9.1–9.4; foundation ownership in 9.1, layout shells in 9.2.
+
 ---
 *Requirements defined: 2026-09-19*  
-*Last updated: 2026-09-19 after initial GSD specification*
+*Last updated: 2026-09-20 after sub-phase decomposition*
