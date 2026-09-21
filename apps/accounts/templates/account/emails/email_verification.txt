@@ -1,0 +1,11 @@
+Welcome to TCS Joining Tracker!
+
+Please confirm your email address to activate your account:
+
+{{ verify_url }}
+
+This link expires in 24 hours and can be used only once. If you did not
+create an account, you can safely ignore this email.
+
+— TCS Joining Tracker (an independent, community-run project; not affiliated
+  with Tata Consultancy Services)

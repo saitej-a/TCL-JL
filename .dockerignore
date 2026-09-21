@@ -1,0 +1,14 @@
+.git
+.freebuff
+.env
+.env.prod
+.env.prod.example
+nginx
+docker-compose*.yml
+Makefile
+*.md
+staticfiles
+media
+db.sqlite3
+__pycache__
+*.pyc

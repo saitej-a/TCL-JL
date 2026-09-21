@@ -1,5 +1,6 @@
 # Environment & secrets (T1.1 — strictly excluded)
 .env
+.env.prod
 *.pem
 *.key
 serviceAccountKey.json
@@ -16,3 +17,7 @@ __pycache__/
 *.pyc
 .venv/
 db.sqlite3
+.pytest_cache/
+.ruff_cache/
+
+

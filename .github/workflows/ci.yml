@@ -1,0 +1,63 @@
+# T1.8 — CI pipeline (decisions locked 2026-09-21: Ruff-only linting, pytest in 1.2).
+# Lint → Format → Test, with PostgreSQL 16 + Redis 7 service containers mirroring
+# the compose topology. Runs on every PR targeting main.
+name: ci
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install ruff==0.14.0
+      - run: ruff check .
+      - run: ruff format --check .
+
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: tcs_tracker
+          POSTGRES_PASSWORD: ci-not-a-secret
+          POSTGRES_DB: tcs_joining_tracker
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U tcs_tracker -d tcs_joining_tracker"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      POSTGRES_HOST: 127.0.0.1
+      POSTGRES_USER: tcs_tracker
+      POSTGRES_PASSWORD: ci-not-a-secret
+      POSTGRES_DB: tcs_joining_tracker
+      DJANGO_SETTINGS_MODULE: config.settings.test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - run: python -m pytest

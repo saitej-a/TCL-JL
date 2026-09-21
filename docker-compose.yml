@@ -1,0 +1,98 @@
+# Development topology — TCS Joining Tracker (Phase 1.2)
+# D-01..D-11 · services per 10_MVP_TASKS.md T1.2 · no top-level `version:` (Compose v2)
+# web = gunicorn (migrations+collectstatic via entrypoint), worker/beat = real Celery (T1.5/T1.6).
+
+services:
+  web:
+    build: .
+    command:
+      ["/app/docker/entrypoint.sh", "gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--threads", "2", "--timeout", "60", "--access-logfile", "-"]
+    env_file: .env
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.local
+      RUN_DB_MIGRATIONS: "1"
+    volumes:
+      - .:/app
+    healthcheck:
+      test: ["CMD", "python", "-c", "import http.client; c = http.client.HTTPConnection('127.0.0.1', 8000, timeout=5); c.request('GET', '/health/ready/'); r = c.getresponse(); r.read(); assert r.status == 200, r.status"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 45s
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  db:
+    image: postgres:16.15-alpine
+    env_file: .env
+    ports:
+      - "127.0.0.1:5432:5432" # loopback-only dev convenience — never publish in prod (T-1.1-03)
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
+
+  redis:
+    image: redis:7.4.11-alpine
+    ports:
+      - "127.0.0.1:6379:6379" # loopback-only dev convenience
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  celery_worker:
+    build: .
+    command:
+      ["/app/docker/entrypoint.sh", "celery", "-A", "config", "worker", "--loglevel=INFO", "--concurrency=2", "-Q", "default,notifications,maintenance"]
+    env_file: .env
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.local
+    volumes:
+      - .:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  celery_beat:
+    build: .
+    command:
+      ["/app/docker/entrypoint.sh", "celery", "-A", "config", "beat", "--loglevel=INFO"]
+    env_file: .env
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.local
+    volumes:
+      - .:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.dev.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./staticfiles:/var/www/static:ro
+    depends_on:
+      web:
+        condition: service_healthy
+
+volumes:
+  postgres_data: {}
+  redis_data: {}

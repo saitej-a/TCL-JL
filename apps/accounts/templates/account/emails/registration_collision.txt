@@ -1,0 +1,11 @@
+Someone just tried to register an account on TCS Joining Tracker using
+your email address.
+
+No account was created and nothing has changed about yours. If this was
+you, use your existing password to sign in — or request a password reset
+if you've forgotten it.
+
+If this wasn't you, no action is needed: your account is untouched.
+
+— TCS Joining Tracker (an independent, community-run project; not affiliated
+  with Tata Consultancy Services)

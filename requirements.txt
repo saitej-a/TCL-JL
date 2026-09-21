@@ -1,0 +1,11 @@
+# Core (Phase 1.2 — T1.3–T1.6). Pinned; revisit via pip-audit in Phase 10.3.
+Django==5.2.6
+djangorestframework==3.16.1
+psycopg[binary]==3.2.10
+gunicorn==23.0.0
+celery==5.5.3
+redis==6.4.0
+django-redis==6.0.0
+argon2-cffi==25.1.0
+djangorestframework-simplejwt==5.5.1
+django-cors-headers==4.7.0

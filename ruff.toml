@@ -1,0 +1,27 @@
+# Ruff-only linting (locked decision 2026-09-21 — supersedes Flake8/Black trio in T1.8).
+target-version = "py311"
+line-length = 100
+# Django migrations are machine-generated; linting/formatting them is churn.
+extend-exclude = ["**/migrations"]
+
+[lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+    "S",   # flake8-bandit (seeded for Phase 10.3)
+]
+ignore = [
+    "S101",  # assert is the test framework's tool
+    "S105",  # hardcoded test/dev secret strings are flagged by explicit noqa instead
+]
+
+[lint.per-file-ignores]
+"apps/*/tests/*" = ["S"]
+"config/settings/*" = ["F403", "F405"]  # settings split uses star-import composition
+
+[format]
+quote-style = "double"

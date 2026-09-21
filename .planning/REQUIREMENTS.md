@@ -103,7 +103,7 @@ Deferred to future post-MVP release.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01 | Phase 2 | Pending |
+| AUTH-01 | Phase 2 | In Progress — model+CITEXT+Argon2id+complexity done in 2.1; registration endpoint in 2.2 |
 | AUTH-02 | Phase 2 | Pending |
 | AUTH-03 | Phase 2 | Pending |
 | AUTH-04 | Phase 2 | Pending |
