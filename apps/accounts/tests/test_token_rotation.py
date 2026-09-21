@@ -7,6 +7,7 @@ whole session family. Also pins the claim hygiene rules (no email/PII).
 import pytest
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.settings import api_settings
 from rest_framework_simplejwt.state import token_backend
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -47,12 +48,14 @@ class TestRotation:
 
     def test_rotation_keeps_family_claim(self, tokens):
         original_fam = token_backend.decode(tokens["refresh"], verify=True)["fam"]
-        rotated_fam = token_backend.decode(_refresh(tokens["refresh"])["refresh"], verify=True)["fam"]
+        rotated_fam = token_backend.decode(_refresh(tokens["refresh"])["refresh"], verify=True)[
+            "fam"
+        ]
         assert original_fam == rotated_fam
 
     def test_child_recorded_outstanding(self, user, tokens):
         assert OutstandingToken.objects.filter(user=user).count() == 1  # login refresh
-        rotated = _refresh(tokens["refresh"])
+        _refresh(tokens["refresh"])
         assert OutstandingToken.objects.filter(user=user).count() == 2  # + child
 
 

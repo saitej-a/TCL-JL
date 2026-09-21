@@ -3,7 +3,6 @@
 import re
 
 import pytest
-from django.test import override_settings
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
@@ -57,7 +56,9 @@ class TestDeletionSuccess:
 
     def test_all_refresh_tokens_blacklisted(self, api, user):
         login = api.post(
-            LOGIN_URL, {"email": user.email, "password": VALID_PASSWORD}, content_type="application/json"
+            LOGIN_URL,
+            {"email": user.email, "password": VALID_PASSWORD},
+            content_type="application/json",
         ).json()
         api.force_authenticate(user)
         _delete(api, {"password": VALID_PASSWORD})
@@ -68,10 +69,14 @@ class TestDeletionSuccess:
         api.force_authenticate(user)
         _delete(api, {"password": VALID_PASSWORD})
         response = api.post(
-            LOGIN_URL, {"email": "doomed@example.com", "password": VALID_PASSWORD}, content_type="application/json"
+            LOGIN_URL,
+            {"email": "doomed@example.com", "password": VALID_PASSWORD},
+            content_type="application/json",
         )
         assert response.status_code == 401
-        assert response.json() == {"error": {"code": "INVALID_CREDENTIALS", "message": "Invalid email or password."}}
+        assert response.json() == {
+            "error": {"code": "INVALID_CREDENTIALS", "message": "Invalid email or password."}
+        }
 
     def test_deleted_email_never_leaks_original(self, api, user):
         api.force_authenticate(user)

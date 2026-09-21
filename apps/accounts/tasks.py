@@ -37,9 +37,7 @@ def send_verification_email(self, user_id: str) -> str | None:
 
     token = make_verification_token(User.objects.get(pk=user_id))
     verify_url = f"{FRONTEND_URL}/verify-email/{token}"
-    body = render_to_string(
-        "account/emails/email_verification.txt", {"verify_url": verify_url}
-    )
+    body = render_to_string("account/emails/email_verification.txt", {"verify_url": verify_url})
     send_mail(
         subject="Verify your TCS Joining Tracker account",
         message=body,
@@ -57,9 +55,7 @@ def send_password_reset_email(self, user_id: str, raw_token: str) -> None:
     if email is None:
         return
     reset_url = f"{FRONTEND_URL}/reset-password/{raw_token}"
-    body = render_to_string(
-        "account/emails/password_reset.txt", {"reset_url": reset_url}
-    )
+    body = render_to_string("account/emails/password_reset.txt", {"reset_url": reset_url})
     send_mail(
         subject="Reset your TCS Joining Tracker password",
         message=body,

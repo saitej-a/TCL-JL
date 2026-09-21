@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 2.2 combined PLAN.md written (two verify-gated stages); next: user plan review, then execute
-last_updated: "2026-09-21T16:05:00.000Z"
-last_activity: 2026-09-21 -- 2.2 PLAN.md written from CONTEXT.md D1/D2; Stage 1 build+pytest gate, Stage 2 live drill
+stopped_at: Phase 2.2 executed (AUTH-02..06 complete); next: /gsd-ns-workflow discuss 3.1
+last_updated: "2026-09-21T16:20:00.000Z"
+last_activity: 2026-09-21 -- 2.2 executed: 92/92 tests, live drill passed (replay→family revoke, D1 collision, 429 drill), docs updated
 progress:
   total_phases: 10
   completed_phases: 0
   total_plans: 27
-  completed_plans: 0
-  percent: 0
+  completed_plans: 4
+  percent: 15
 ---
 
 # Project State
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-09-19)
 
 ## Current Position
 
-Phase: 2.2 (of 10 — Authentication, Identity & Custom User System); Phases 1 & 2.1 COMPLETE
-Plan: 0 of 1 in current sub-phase (combined 02-02 + 02-03 pass — PLAN.md written, awaiting user review)
-Status: Phase 2.2 PLANNED — plan pending review; not executed
-Last activity: 2026-09-21 -- 2.2 combined PLAN.md written: Stage 1 code+automated gates, Stage 2 live verification round
+Phase: 3.1 (of 10 — Candidate Profiles & Public Identity Controls); Phases 1 & 2 COMPLETE
+Plan: 1 of 1 in sub-phase 2.2 (combined 02-02 + 02-03) — executed & verified
+Status: Phase 2.2 COMPLETE — AUTH-02..06 shipped; next sub-phase: 3.1 CandidateProfile model
+Last activity: 2026-09-21 -- 2.2 live drill passed: replay→family revocation, D1 collision notify, 429 Retry-After, anonymizing deletion
 
-Progress: [█░░░░░░░░░] 10%
+Progress: [██░░░░░░░░] 15%
 
 ## Performance Metrics
 
@@ -93,6 +93,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-09-21T16:05:00.000Z
-Stopped at: Phase 2.2 combined PLAN.md written — awaiting user review before execution
+Last session: 2026-09-21T16:20:00.000Z
+Stopped at: Phase 2.2 executed & verified — Phase 2 complete; next is Phase 3.1 discussion
 Resume file: .planning/phases/TCS-JL-02.2-registration-jwt-and-account-lifecycle/PLAN.md

@@ -83,6 +83,7 @@ Provide anxious candidates with complete clarity on their recruitment progress a
 | React + Tailwind + Vite SPA | Provides instant optimistic UI, native-feeling mobile bottom tab bar, and PWA capabilities | ✓ Good |
 | Soft Deletion for Content | Preserves reply trees and conversation context; keeps evidence for moderation audit | ✓ Good |
 | Strict 1-Level Reply Depth | Prevents runaway mobile indentation and complex nested queries while supporting clear dialogue | ✓ Good |
+| Stitch UI generation deferred to Phase 9.1 | User decision 2026-09-21: MCP-based mockups stay untouched until the SPA phase starts; backend phases 3–8 first. Generate the design system from `05_UI_UX_SPECIFICATION.md` then the 12 views in 9.1–9.4 order | Pending |
 
 ---
-*Last updated: 2026-09-19 after GSD project initialization*
+*Last updated: 2026-09-21 after Phase 2.2 execution (AUTH-02..06 complete; Stitch deferred to 9.1)*

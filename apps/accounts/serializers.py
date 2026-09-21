@@ -16,7 +16,6 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.settings import api_settings
 from rest_framework_simplejwt.state import token_backend
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
 
 from apps.accounts.models import User
 
@@ -39,6 +38,10 @@ class UserPrivateSerializer(serializers.ModelSerializer):
 class RegisterSerializer(serializers.ModelSerializer):
     """04 §12.1. ``is_staff``/``is_superuser`` are never accepted (06 §4.4)."""
 
+    # Explicit declaration: ModelSerializer would otherwise auto-attach
+    # UniqueValidator to the unique model field, leaking "email exists" on
+    # collisions — forbidden by D1/06 §2.4. Collision handling is the service's.
+    email = serializers.EmailField()
     password = serializers.CharField(write_only=True, trim_whitespace=False, max_length=128)
     password_confirm = serializers.CharField(write_only=True, trim_whitespace=False)
 
@@ -51,9 +54,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         if attrs["password"] != attrs["password_confirm"]:
-            raise serializers.ValidationError(
-                {"password_confirm": "Passwords do not match."}
-            )
+            raise serializers.ValidationError({"password_confirm": "Passwords do not match."})
         # Full pipeline (similarity vs email + complexity + common) against a
         # candidate user instance — the same validation reset-confirm reuses.
         validate_password(attrs["password"], user=User(email=attrs["email"]))
@@ -100,7 +101,7 @@ class FamilyTokenRefreshSerializer(serializers.Serializer):
             # Malformed, expired, or already-replayed. For replays (signature
             # valid, jti blacklisted) revoke the whole family first.
             self._revoke_family_for_replay(raw)
-            raise AuthenticationFailed("Token is invalid or expired.")
+            raise AuthenticationFailed("Token is invalid or expired.") from None
 
         user = self._user_from_payload(refresh.payload)
         # Hydrate the claim from the DB: the login-time value goes stale
@@ -168,9 +169,7 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         if attrs["new_password"] != attrs["new_password_confirm"]:
-            raise serializers.ValidationError(
-                {"new_password_confirm": "Passwords do not match."}
-            )
+            raise serializers.ValidationError({"new_password_confirm": "Passwords do not match."})
         return attrs
 
 

@@ -9,13 +9,16 @@ which hashes a dummy password for unknown users — constant-time behavior
 against email enumeration (06 §2.4 rule 2).
 """
 
+import logging
+from uuid import uuid4
+
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.signing import BadSignature, SignatureExpired, TimestampSigner
 from django.db import transaction
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
-
 from rest_framework_simplejwt.state import token_backend
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 
@@ -26,19 +29,20 @@ from apps.accounts.tasks import (
     send_verification_email,
 )
 
+logger = logging.getLogger(__name__)
+
 # Per-purpose salt (06 §2.5: salted TimestampSigner tokens).
 EMAIL_VERIFY_SALT = "accounts.email-verify.v1"
 EMAIL_VERIFY_MAX_AGE = 86400  # exactly 24 hours (AUTH-02)
 
-GENERIC_VERIFICATION_MESSAGE = (
-    "If an unverified account exists, a verification link has been sent."
-)
+GENERIC_VERIFICATION_MESSAGE = "If an unverified account exists, a verification link has been sent."
 GENERIC_RESET_MESSAGE = (
     "If an account exists with this email, password reset instructions have been dispatched."
 )
 
 
 # --- Token helpers -------------------------------------------------------------
+
 
 def make_verification_token(user: User) -> str:
     signer = TimestampSigner(salt=EMAIL_VERIFY_SALT)
@@ -73,7 +77,9 @@ def make_password_reset_token(user: User) -> str:
 
     Hash rotation at confirm time inherently invalidates outstanding tokens.
     """
-    return f"{urlsafe_base64_encode(force_bytes(user.pk))}.{default_token_generator.make_token(user)}"
+    return (
+        f"{urlsafe_base64_encode(force_bytes(user.pk))}.{default_token_generator.make_token(user)}"
+    )
 
 
 def read_password_reset_token(token: str) -> User:
@@ -89,6 +95,7 @@ def read_password_reset_token(token: str) -> User:
 
 
 # --- Token revocation (06 §3.4 matrix) -----------------------------------------
+
 
 def revoke_user_refresh_tokens(user: User) -> int:
     """Bulk-blacklist every outstanding refresh token for ``user``.
@@ -115,7 +122,8 @@ def _bulk_blacklist(outstanding, fam: str | None = None) -> int:
         if fam is not None:
             try:
                 payload = token_backend.decode(token.token, verify=False)
-            except Exception:  # undecodable legacy row — not part of any family
+            except Exception as exc:  # undecodable legacy row — not part of any family
+                logger.debug("skipping undecodable outstanding token %s: %s", token.jti, exc)
                 continue
             if payload.get("fam") != fam:
                 continue
@@ -131,6 +139,7 @@ def _bulk_blacklist(outstanding, fam: str | None = None) -> int:
 
 # --- Registration (06 §2.4, D1) -------------------------------------------------
 
+
 def register_user(email: str, password: str) -> dict:
     """Create the account, or run the D1 collision branch.
 
@@ -139,9 +148,7 @@ def register_user(email: str, password: str) -> dict:
     """
     existing = User.objects.filter(email=email.strip().lower()).first()
     if existing is not None:
-        transaction.on_commit(
-            lambda: send_registration_collision_email.delay(str(existing.pk))
-        )
+        transaction.on_commit(lambda: send_registration_collision_email.delay(str(existing.pk)))
         return {"created": False, "user": None}
 
     user = User.objects.create_user(email=email.strip().lower(), password=password)
@@ -154,6 +161,7 @@ def dispatch_verification_email(user: User) -> None:
 
 
 # --- Verification (06 §2.5) ------------------------------------------------------
+
 
 def verify_email(token: str) -> User:
     user = read_verification_token(token)
@@ -171,14 +179,21 @@ def resend_verification(email: str) -> None:
 
 # --- Password reset (06 §3.5, AUTH-03) -------------------------------------------
 
+
 def request_password_reset(email: str) -> None:
     user = User.objects.filter(email=email.strip().lower()).first()
     if user is None or not user.is_active:
         return  # generic response either way (06 §3.5 rule 1)
     raw_token = make_password_reset_token(user)
-    transaction.on_commit(
-        lambda: send_password_reset_email.delay(str(user.pk), raw_token)
-    )
+    transaction.on_commit(lambda: send_password_reset_email.delay(str(user.pk), raw_token))
+
+
+def _validated_password_or_value_error(new_password: str, user: User) -> None:
+    """Run the full pipeline; services raise ValueError so views render 400s."""
+    try:
+        validate_password(new_password, user=user)
+    except DjangoValidationError as exc:
+        raise ValueError("; ".join(exc.messages)) from exc
 
 
 def confirm_password_reset(raw_token: str, new_password: str) -> User:
@@ -186,7 +201,7 @@ def confirm_password_reset(raw_token: str, new_password: str) -> User:
     full password pipeline, and revoke all refresh tokens (06 §3.4 trigger 2).
     """
     user = read_password_reset_token(raw_token)
-    validate_password(new_password, user=user)
+    _validated_password_or_value_error(new_password, user)
     user.set_password(new_password)
     user.save(update_fields=["password", "updated_at"])
     revoke_user_refresh_tokens(user)
@@ -195,10 +210,11 @@ def confirm_password_reset(raw_token: str, new_password: str) -> User:
 
 # --- Change password (04 §77; shares revocation semantics) ------------------------
 
+
 def change_password(user: User, current_password: str, new_password: str) -> None:
     if not user.check_password(current_password):
         raise ValueError("Current password is incorrect.")
-    validate_password(new_password, user=user)
+    _validated_password_or_value_error(new_password, user)
     user.set_password(new_password)
     user.save(update_fields=["password", "updated_at"])
     revoke_user_refresh_tokens(user)

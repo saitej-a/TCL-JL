@@ -14,6 +14,14 @@ VALID_PASSWORD = "Correct Horse Battery 9!"
 
 
 def _login(client, email="logout@example.com"):
+    User.objects.get_or_create(
+        email=email,
+        defaults={"is_verified": True},
+    )
+    user = User.objects.get(email=email)
+    if not user.check_password(VALID_PASSWORD):
+        user.set_password(VALID_PASSWORD)
+        user.save(update_fields=["password"])
     response = client.post(
         LOGIN_URL, {"email": email, "password": VALID_PASSWORD}, content_type="application/json"
     )
@@ -41,14 +49,18 @@ class TestLogout:
         User.objects.create_user("attacker@example.com", VALID_PASSWORD)
         attacker = _login(api, "attacker@example.com")
         api.force_authenticate(User.objects.get(email="attacker@example.com"))
-        response = api.post(LOGOUT_URL, {"refresh": tokens["refresh"]}, content_type="application/json")
+        response = api.post(
+            LOGOUT_URL, {"refresh": tokens["refresh"]}, content_type="application/json"
+        )
         assert response.status_code == 400
         # The owner's refresh is untouched.
         RefreshToken(tokens["refresh"])  # must not raise
         assert attacker["access"]
 
     def test_logout_malformed_token_400(self, api):
-        tokens = _login(api)
+        _login(api)  # ensure the user exists for force_authenticate
         api.force_authenticate(User.objects.get(email="logout@example.com"))
-        response = api.post(LOGOUT_URL, {"refresh": "garbage-token"}, content_type="application/json")
+        response = api.post(
+            LOGOUT_URL, {"refresh": "garbage-token"}, content_type="application/json"
+        )
         assert response.status_code == 400

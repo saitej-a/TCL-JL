@@ -103,12 +103,12 @@ Deferred to future post-MVP release.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01 | Phase 2 | In Progress — model+CITEXT+Argon2id+complexity done in 2.1; registration endpoint in 2.2 |
-| AUTH-02 | Phase 2 | Pending |
-| AUTH-03 | Phase 2 | Pending |
-| AUTH-04 | Phase 2 | Pending |
-| AUTH-05 | Phase 2 | Pending |
-| AUTH-06 | Phase 2 | Pending |
+| AUTH-01 | Phase 2 | Complete — 2.1 model+CITEXT+Argon2id+complexity; 2.2 registration endpoint |
+| AUTH-02 | Phase 2 | Complete — 2.2: 24h single-use verification, 1/min resend |
+| AUTH-03 | Phase 2 | Complete — 2.2: 60-min reset, hash rotation revokes sessions |
+| AUTH-04 | Phase 2 | Complete — 2.2: 15m/7d JWT, rotation + family reuse-revocation |
+| AUTH-05 | Phase 2 | Complete — 2.2: anonymizing deletion, row retained as tombstone seam |
+| AUTH-06 | Phase 2 | Complete — 2.2: 5/min combined-bucket login throttle, generic failures |
 | PROF-01 | Phase 3 | Pending |
 | PROF-02 | Phase 3 | Pending |
 | PROF-03 | Phase 3 | Pending |

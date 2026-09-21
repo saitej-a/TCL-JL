@@ -34,9 +34,7 @@ from apps.accounts.throttles import (
     VerifyResendRateThrottle,
 )
 
-REGISTRATION_MESSAGE = (
-    "Registration successful. Please check your email to activate your account."
-)
+REGISTRATION_MESSAGE = "Registration successful. Please check your email to activate your account."
 
 
 class SpecErrorMixin:
@@ -81,7 +79,7 @@ class VerifyEmailView(SpecErrorMixin, APIView):
         try:
             services.verify_email(serializer.validated_data["token"])
         except ValueError as exc:
-            raise ValidationError(str(exc))
+            raise ValidationError(str(exc)) from exc
         return Response({"message": "Email verified successfully."})
 
 
@@ -135,8 +133,8 @@ class LogoutView(SpecErrorMixin, APIView):
         serializer.is_valid(raise_exception=True)
         try:
             token = RefreshToken(serializer.validated_data["refresh"])
-        except TokenError:
-            raise ValidationError({"refresh": "Invalid or expired token."})
+        except TokenError as exc:
+            raise ValidationError({"refresh": "Invalid or expired token."}) from exc
         if str(token.payload.get("user_id")) != str(request.user.pk):
             raise ValidationError({"refresh": "Token does not belong to this account."})
         try:
@@ -174,7 +172,7 @@ class PasswordResetConfirmView(SpecErrorMixin, APIView):
                 serializer.validated_data["new_password"],
             )
         except ValueError as exc:
-            raise ValidationError(str(exc))
+            raise ValidationError(str(exc)) from exc
         return Response({"message": "Password reset successfully."})
 
 

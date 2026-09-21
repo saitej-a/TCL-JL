@@ -32,7 +32,14 @@ class TestMeEndpoint:
     def test_no_sensitive_fields_leak(self, api, user):
         api.force_authenticate(user)
         body = api.get(ME_URL).json()
-        for forbidden in ("password", "is_staff", "is_superuser", "last_login", "groups", "user_permissions"):
+        for forbidden in (
+            "password",
+            "is_staff",
+            "is_superuser",
+            "last_login",
+            "groups",
+            "user_permissions",
+        ):
             assert forbidden not in body
 
     def test_ids_are_uuid_not_int(self, api, user):

@@ -1,6 +1,6 @@
 # PLAN — Phase 2.2: Registration, JWT & Account Lifecycle (combined 02-02 + 02-03)
 
-**Phase:** 2.2 · **Roadmap:** AUTH-02..AUTH-06 · **Status:** 📝 Awaiting review · **Written:** 2026-09-21
+**Phase:** 2.2 · **Roadmap:** AUTH-02..AUTH-06 · **Status:** ✅ Executed 2026-09-21 · **Written:** 2026-09-21
 **Inputs:** `CONTEXT.md` in this directory (decisions D1/D2 + spec-derived invariants from 06 + 04)
 **Shape (D2):** one combined pass — the two verify-gated stages below, one stack rebuild, one live
 verification round. Roadmap labels 02-02 / 02-03 remain accounting only and are **not** separate stages.
@@ -128,20 +128,18 @@ locmem backend (`mail.outbox`), inside `transaction=True` db marks to fire `on_c
 5. 1.4 test files → `docker compose run --rm web python -m pytest`
 6. **Stage 1 gate:** pytest green · `ruff check .` · `ruff format --check .` · `makemigrations --check` clean (entrypoint gate) — fix before Stage 2
 
-## Stage 2 — Live verification round (single rebuild already done; drill on the running stack)
+## Stage 1 gate — met 2026-09-21
 
-**Gate:** every checklist item below ticked with evidence; then state/traceability updates.
+- [x] pytest green in-stack — **92/92** (65 new + 27 pre-existing untouched), `ruff check` + `format --check` clean, `makemigrations --check` clean
+- [x] Executor findings vs plan: (a) User lacked `is_verified` — added to 0004; (b) ModelSerializer auto-`UniqueValidator` would have leaked "email exists" — serializer declares email explicitly (D1 preserved); (c) `apps/accounts/__init__.py` missing (2.1 anomaly) — created, tests no longer double-collect
+- [x] Family reuse-detection smoke-verified before tests: rotate → replay 401 → child dead
 
-- [ ] Live curl drill on the running stack, in order: register → verification email visible in
-  worker logs (console backend) → verify → login → refresh → **replay old refresh → 401 and the
-  rotated child also dead (family gone)** → `/me/` → logout `204` → reset round-trip (request →
-  confirm) → deletion with wrong password (403) then correct password (204)
-- [ ] Throttle probe: 6th login attempt → `429` with `Retry-After` header
-- [ ] Final full pytest re-run green in-stack; `ruff check` + `format --check` clean
-- [ ] `makemigrations --check` clean; web entrypoint gates pass on restart
-- [ ] `make prod-config` validates; `/health/ready/` still `200` db+cache ok (untouched)
-- [ ] `.planning/STATE.md` updated; `REQUIREMENTS.md` traceability: AUTH-02..AUTH-06 → Complete;
-  ROADMAP progress table row for Phase 2 updated
+## Stage 2 — Live verification round — all met 2026-09-21
+
+- [x] Live curl drill: register 201 (generic) → verification email in worker logs → verify 200 → reuse 400 → login 200 → rotate → **replay 401 `INVALID_CREDENTIALS` and rotated child 401 (family revoked)** → `/me/` exact shape → logout 204 → refresh-after-logout 401 → reset round-trip (generic request 200 → confirm 200 → old pw 401 / new pw 200) → deletion: wrong pw 403 (generic), correct pw 204, DB row `deleted_…@tracker.internal` retained with flags false, post-deletion login 401
+- [x] Throttle probe: 6th login attempt → 429 + `Retry-After: 60` header (live, through nginx)
+- [x] D1 collision live: identical 201 body + `registration collision notice dispatched` in worker logs
+- [x] `docker compose -f docker-compose.prod.yml config` validates; `/health/ready/` 200 db+cache ok; all 6 services healthy after restart
 
 ## Out of scope (explicitly deferred, per CONTEXT.md)
 

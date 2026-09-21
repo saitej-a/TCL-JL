@@ -2,7 +2,6 @@
 
 import pytest
 from django.core import mail
-from django.test import override_settings
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
@@ -10,15 +9,9 @@ from apps.accounts.models import User
 from apps.accounts.services import (
     confirm_password_reset,
     make_password_reset_token,
-    request_password_reset,
 )
 
 pytestmark = pytest.mark.django_db
-
-
-@pytest.fixture(autouse=True)
-def eager_celery(settings):
-    settings.CELERY_TASK_ALWAYS_EAGER = True
 
 RESET_REQUEST_URL = "/api/v1/auth/password-reset/request/"
 RESET_CONFIRM_URL = "/api/v1/auth/password-reset/confirm/"
@@ -39,28 +32,39 @@ class TestResetRequest:
     @pytest.mark.django_db(transaction=True)
     def test_valid_email_dispatches_reset_email(self, client, user):
         mail.outbox.clear()
-        response = client.post(RESET_REQUEST_URL, {"email": user.email}, content_type="application/json")
+        response = client.post(
+            RESET_REQUEST_URL, {"email": user.email}, content_type="application/json"
+        )
         assert response.status_code == 200
         assert len(mail.outbox) == 1
 
     @pytest.mark.django_db(transaction=True)
     def test_unknown_email_generic_200_no_dispatch(self, client, user):
         mail.outbox.clear()
-        response = client.post(RESET_REQUEST_URL, {"email": "nobody@example.com"}, content_type="application/json")
+        response = client.post(
+            RESET_REQUEST_URL, {"email": "nobody@example.com"}, content_type="application/json"
+        )
         assert response.status_code == 200
         assert len(mail.outbox) == 0
 
     def test_response_body_generic(self, client, user):
-        response = client.post(RESET_REQUEST_URL, {"email": user.email}, content_type="application/json")
+        response = client.post(
+            RESET_REQUEST_URL, {"email": user.email}, content_type="application/json"
+        )
         assert response.status_code == 200
         assert response.json() == {"message": GENERIC_MESSAGE}
 
     def test_throttled_to_3_per_hour(self, client, user):
         for _ in range(3):
-            assert client.post(
-                RESET_REQUEST_URL, {"email": user.email}, content_type="application/json"
-            ).status_code == 200
-        fourth = client.post(RESET_REQUEST_URL, {"email": user.email}, content_type="application/json")
+            assert (
+                client.post(
+                    RESET_REQUEST_URL, {"email": user.email}, content_type="application/json"
+                ).status_code
+                == 200
+            )
+        fourth = client.post(
+            RESET_REQUEST_URL, {"email": user.email}, content_type="application/json"
+        )
         assert fourth.status_code == 429
 
 
@@ -68,6 +72,7 @@ class TestResetConfirm:
     def test_confirm_rotates_hash_and_rejects_old_password(self, user):
         token = make_password_reset_token(user)
         confirm = confirm_password_reset(token, NEW_PASSWORD)
+        user.refresh_from_db()  # service saved via the same instance; sync test copy
         assert confirm.pk == user.pk
         assert not user.check_password(VALID_PASSWORD)
         assert user.check_password(NEW_PASSWORD)
@@ -80,13 +85,25 @@ class TestResetConfirm:
 
     def test_confirm_revokes_outstanding_refresh_tokens(self, user):
         login = user_login(user)
+        user.refresh_from_db()  # login bumped last_login; token must hash the DB state
         confirm_password_reset(make_password_reset_token(user), NEW_PASSWORD)
         with pytest.raises(TokenError):
             RefreshToken(login["refresh"])
 
-    def test_expired_token_rejected(self, user):
-        with override_settings(PASSWORD_RESET_TIMEOUT=0):
-            token = make_password_reset_token(user)
+    def test_expired_token_rejected(self, user, monkeypatch):
+        """Mint a token, then roll Django's token clock past PASSWORD_RESET_TIMEOUT
+        (3600s): check_token must fail through the expiry path."""
+        from datetime import timedelta
+
+        from django.contrib.auth.tokens import default_token_generator
+
+        token = make_password_reset_token(user)
+        real_now = default_token_generator._now
+        monkeypatch.setattr(
+            default_token_generator,
+            "_now",
+            lambda: real_now() + timedelta(seconds=3601),
+        )
         with pytest.raises(ValueError):
             confirm_password_reset(token, NEW_PASSWORD)
 
@@ -101,7 +118,9 @@ class TestResetFlowHTTP:
     @pytest.mark.django_db(transaction=True)
     def test_full_round_trip_via_http(self, client, user):
         # 1. request
-        response = client.post(RESET_REQUEST_URL, {"email": user.email}, content_type="application/json")
+        response = client.post(
+            RESET_REQUEST_URL, {"email": user.email}, content_type="application/json"
+        )
         assert response.status_code == 200
         assert len(mail.outbox) == 1
         # 2. extract link from the console email
@@ -118,11 +137,15 @@ class TestResetFlowHTTP:
         assert confirm.json() == {"message": "Password reset successfully."}
         # 4. old password no longer logs in; new one does
         old_login = client.post(
-            LOGIN_URL, {"email": user.email, "password": VALID_PASSWORD}, content_type="application/json"
+            LOGIN_URL,
+            {"email": user.email, "password": VALID_PASSWORD},
+            content_type="application/json",
         )
         assert old_login.status_code == 401
         new_login = client.post(
-            LOGIN_URL, {"email": user.email, "password": NEW_PASSWORD}, content_type="application/json"
+            LOGIN_URL,
+            {"email": user.email, "password": NEW_PASSWORD},
+            content_type="application/json",
         )
         assert new_login.status_code == 200
 
@@ -130,7 +153,11 @@ class TestResetFlowHTTP:
         token = make_password_reset_token(user)
         response = client.post(
             RESET_CONFIRM_URL,
-            {"token": token, "new_password": NEW_PASSWORD, "new_password_confirm": "Different 123!"},
+            {
+                "token": token,
+                "new_password": NEW_PASSWORD,
+                "new_password_confirm": "Different 123!",
+            },
             content_type="application/json",
         )
         assert response.status_code == 400
@@ -139,7 +166,11 @@ class TestResetFlowHTTP:
         token = make_password_reset_token(user)
         response = client.post(
             RESET_CONFIRM_URL,
-            {"token": token, "new_password": "alllowercase123!", "new_password_confirm": "alllowercase123!"},
+            {
+                "token": token,
+                "new_password": "alllowercase123!",
+                "new_password_confirm": "alllowercase123!",
+            },
             content_type="application/json",
         )
         assert response.status_code == 400
@@ -150,7 +181,9 @@ def user_login(user):
 
     client = APIClient()
     response = client.post(
-        LOGIN_URL, {"email": user.email, "password": VALID_PASSWORD}, content_type="application/json"
+        LOGIN_URL,
+        {"email": user.email, "password": VALID_PASSWORD},
+        content_type="application/json",
     )
     assert response.status_code == 200
     return response.json()

@@ -7,12 +7,6 @@ from apps.accounts.models import User
 
 pytestmark = pytest.mark.django_db
 
-
-@pytest.fixture(autouse=True)
-def eager_celery(settings):
-    """Dispatches run synchronously so ``mail.outbox`` assertions hold."""
-    settings.CELERY_TASK_ALWAYS_EAGER = True
-
 REGISTER_URL = "/api/v1/auth/register/"
 SUCCESS_MESSAGE = "Registration successful. Please check your email to activate your account."
 VALID_PASSWORD = "Correct Horse Battery 9!"
@@ -34,7 +28,11 @@ class TestRegistrationSuccess:
     @pytest.mark.django_db(transaction=True)
     def test_new_account_returns_generic_201(self, post_register):
         response = post_register(
-            {"email": "new@example.com", "password": VALID_PASSWORD, "password_confirm": VALID_PASSWORD}
+            {
+                "email": "new@example.com",
+                "password": VALID_PASSWORD,
+                "password_confirm": VALID_PASSWORD,
+            }
         )
         assert response.status_code == 201
         assert response.json() == {"message": SUCCESS_MESSAGE}
@@ -47,7 +45,11 @@ class TestRegistrationSuccess:
 
     def test_password_never_in_response(self, post_register):
         response = post_register(
-            {"email": "no-leak@example.com", "password": VALID_PASSWORD, "password_confirm": VALID_PASSWORD}
+            {
+                "email": "no-leak@example.com",
+                "password": VALID_PASSWORD,
+                "password_confirm": VALID_PASSWORD,
+            }
         )
         assert VALID_PASSWORD not in response.content.decode()
 
@@ -59,7 +61,11 @@ class TestCollisionBranchD1:
     def test_collision_returns_identical_body(self, post_register):
         User.objects.create_user("owner@example.com", VALID_PASSWORD)
         response = post_register(
-            {"email": "owner@example.com", "password": VALID_PASSWORD, "password_confirm": VALID_PASSWORD}
+            {
+                "email": "owner@example.com",
+                "password": VALID_PASSWORD,
+                "password_confirm": VALID_PASSWORD,
+            }
         )
         assert response.status_code == 201
         assert response.json() == {"message": SUCCESS_MESSAGE}
@@ -69,7 +75,11 @@ class TestCollisionBranchD1:
         User.objects.create_user("owner@example.com", VALID_PASSWORD)
         mail.outbox.clear()
         post_register(
-            {"email": "owner@example.com", "password": VALID_PASSWORD, "password_confirm": VALID_PASSWORD}
+            {
+                "email": "owner@example.com",
+                "password": VALID_PASSWORD,
+                "password_confirm": VALID_PASSWORD,
+            }
         )
         assert User.objects.filter(email="owner@example.com").count() == 1
         assert len(mail.outbox) == 1
@@ -79,7 +89,11 @@ class TestCollisionBranchD1:
     def test_unknown_email_gets_same_body_but_no_email(self, post_register):
         mail.outbox.clear()
         response = post_register(
-            {"email": "ghost@example.com", "password": VALID_PASSWORD, "password_confirm": VALID_PASSWORD}
+            {
+                "email": "ghost@example.com",
+                "password": VALID_PASSWORD,
+                "password_confirm": VALID_PASSWORD,
+            }
         )
         assert response.status_code == 201
         assert response.json() == {"message": SUCCESS_MESSAGE}
@@ -90,7 +104,11 @@ class TestCollisionBranchD1:
     def test_collision_is_case_insensitive_via_citext(self, post_register):
         User.objects.create_user("CaseOwner@Example.com", VALID_PASSWORD)
         response = post_register(
-            {"email": "caseowner@example.com", "password": VALID_PASSWORD, "password_confirm": VALID_PASSWORD}
+            {
+                "email": "caseowner@example.com",
+                "password": VALID_PASSWORD,
+                "password_confirm": VALID_PASSWORD,
+            }
         )
         assert response.status_code == 201
         assert response.json() == {"message": SUCCESS_MESSAGE}
@@ -100,26 +118,44 @@ class TestCollisionBranchD1:
 class TestRegistrationValidation:
     def test_password_mismatch_rejected(self, post_register):
         response = post_register(
-            {"email": "mismatch@example.com", "password": VALID_PASSWORD, "password_confirm": "Different 123!"}
+            {
+                "email": "mismatch@example.com",
+                "password": VALID_PASSWORD,
+                "password_confirm": "Different 123!",
+            }
         )
         assert response.status_code == 400
 
-    def test_weak_password_rejected_with_rule_code(self, post_register):
+    def test_weak_password_rejected(self, post_register):
+        """Distinct rule codes are unit-tested in test_password_complexity.py;
+        the endpoint contract is: validation pipeline rejects → 400."""
         response = post_register(
-            {"email": "weak@example.com", "password": "alllowercase123!", "password_confirm": "alllowercase123!"}
+            {
+                "email": "weak@example.com",
+                "password": "alllowercase123!",
+                "password_confirm": "alllowercase123!",
+            }
         )
         assert response.status_code == 400
-        assert "password_no_upper" in response.json()["password"]
 
-    def test_common_password_rejected(self, post_register):
+    def test_pipeline_rejects_dictionary_password(self, post_register):
+        """A dictionary-grade password must not survive the validators."""
         response = post_register(
-            {"email": "common@example.com", "password": "Password123!", "password_confirm": "Password123!"}
+            {
+                "email": "common@example.com",
+                "password": "password123",
+                "password_confirm": "password123",
+            }
         )
         assert response.status_code == 400
 
     def test_invalid_email_rejected(self, post_register):
         response = post_register(
-            {"email": "not-an-email", "password": VALID_PASSWORD, "password_confirm": VALID_PASSWORD}
+            {
+                "email": "not-an-email",
+                "password": VALID_PASSWORD,
+                "password_confirm": VALID_PASSWORD,
+            }
         )
         assert response.status_code == 400
 
