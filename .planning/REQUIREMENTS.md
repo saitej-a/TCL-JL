@@ -113,8 +113,8 @@ Deferred to future post-MVP release.
 | PROF-02 | Phase 3 | Complete — 3.1: ANONYMOUS default + DISPLAY_NAME mode; resolver never leaks email |
 | PROF-03 | Phase 3 | Complete — 3.1: transition machine REGISTERED→JOINED per 03 §6; WITHDRAWN terminal (D1) |
 | PROF-04 | Phase 3 | Complete — 3.2: /profile/ CRUD (active+verified gate, 409 duplicates, 405 delete), public /candidates/{id}/ §23 shape, Author/Candidate public serializers, reserved-token blocker |
-| TIME-01 | Phase 4 | Pending |
-| TIME-02 | Phase 4 | Pending |
+| TIME-01 | Phase 4 | Complete — 4.1: TimelineEvent model (UUIDv4, 8 event types, CASCADE FK) with date + notes per 03 §7 |
+| TIME-02 | Phase 4 | Complete — 4.1: record_timeline_event walks the 3.1 chain atomically (04 §85); forward-only D2 semantics; blocked chains roll back the insert |
 | TIME-03 | Phase 4 | Pending |
 | TIME-04 | Phase 4 | Pending |
 | TIME-05 | Phase 4 | Pending |
@@ -166,7 +166,7 @@ Phases are decomposed into decimal sub-phases (directories under `.planning/phas
 | 2.2 Registration, JWT & Account Lifecycle | AUTH-02, AUTH-03, AUTH-04, AUTH-05, AUTH-06 | 02-02, 02-03 |
 | 3.1 Candidate Profile Model & Status Machine | PROF-01, PROF-02, PROF-03 | 03-01 |
 | 3.2 Profile API & Privacy Boundaries | PROF-04 | 03-02 |
-| 4.1 Timeline Model & Atomic Status Sync | TIME-01, TIME-02 | 04-01 |
+| 4.1 Timeline Model & Atomic Status Sync | TIME-01, TIME-02 | 04-01 — Complete (2026-09-21): TimelineEvent + walk-the-chain sync, 30 tests |
 | 4.2 Timeline API, IDOR Defense & Dashboard | TIME-03, TIME-04, TIME-05 | 04-02 |
 | 5.1 Forum Models & Deletion Semantics | COMM-03, COMM-04, COMM-05 | 05-01 |
 | 5.2 Feed, Comments & Voting Endpoints | COMM-01, COMM-02, COMM-06, COMM-07, COMM-08 | 05-02, 05-03 |

@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     # Project apps (09 §3.1 app boundaries)
     "apps.accounts.apps.AccountsConfig",
     "apps.candidates.apps.CandidatesConfig",
+    "apps.timeline.apps.TimelineConfig",
 ]
 
 MIDDLEWARE = [
