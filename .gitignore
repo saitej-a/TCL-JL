@@ -20,4 +20,6 @@ db.sqlite3
 .pytest_cache/
 .ruff_cache/
 
+# static files
+staticfiles/
 

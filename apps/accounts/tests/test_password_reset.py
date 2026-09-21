@@ -36,12 +36,14 @@ def user():
 
 
 class TestResetRequest:
+    @pytest.mark.django_db(transaction=True)
     def test_valid_email_dispatches_reset_email(self, client, user):
         mail.outbox.clear()
         response = client.post(RESET_REQUEST_URL, {"email": user.email}, content_type="application/json")
         assert response.status_code == 200
         assert len(mail.outbox) == 1
 
+    @pytest.mark.django_db(transaction=True)
     def test_unknown_email_generic_200_no_dispatch(self, client, user):
         mail.outbox.clear()
         response = client.post(RESET_REQUEST_URL, {"email": "nobody@example.com"}, content_type="application/json")
@@ -96,6 +98,7 @@ class TestResetConfirm:
 
 
 class TestResetFlowHTTP:
+    @pytest.mark.django_db(transaction=True)
     def test_full_round_trip_via_http(self, client, user):
         # 1. request
         response = client.post(RESET_REQUEST_URL, {"email": user.email}, content_type="application/json")

@@ -22,32 +22,33 @@ def _login(client, email="logout@example.com"):
 
 
 class TestLogout:
-    def test_logout_blacklists_refresh_and_returns_204(self, client):
-        tokens = _login(client)
-        response = client.post(
+    def test_logout_blacklists_refresh_and_returns_204(self, api):
+        tokens = _login(api)
+        api.force_authenticate(User.objects.get(email="logout@example.com"))
+        response = api.post(
             LOGOUT_URL, {"refresh": tokens["refresh"]}, content_type="application/json"
         )
         assert response.status_code == 204
         with pytest.raises(TokenError):
             RefreshToken(tokens["refresh"])  # blacklisted
 
-    def test_logout_requires_authentication(self, client):
-        response = client.post(LOGOUT_URL, {"refresh": "anything"}, content_type="application/json")
+    def test_logout_requires_authentication(self, api):
+        response = api.post(LOGOUT_URL, {"refresh": "anything"}, content_type="application/json")
         assert response.status_code == 401
 
-    def test_logout_rejects_token_of_other_account(self, client):
-        tokens = _login(client, "owner@example.com")
+    def test_logout_rejects_token_of_other_account(self, api):
+        tokens = _login(api, "owner@example.com")
         User.objects.create_user("attacker@example.com", VALID_PASSWORD)
-        attacker = _login(client, "attacker@example.com")
-        client.force_authenticate(User.objects.get(email="attacker@example.com"))
-        response = client.post(LOGOUT_URL, {"refresh": tokens["refresh"]}, content_type="application/json")
+        attacker = _login(api, "attacker@example.com")
+        api.force_authenticate(User.objects.get(email="attacker@example.com"))
+        response = api.post(LOGOUT_URL, {"refresh": tokens["refresh"]}, content_type="application/json")
         assert response.status_code == 400
         # The owner's refresh is untouched.
         RefreshToken(tokens["refresh"])  # must not raise
         assert attacker["access"]
 
-    def test_logout_malformed_token_400(self, client):
-        tokens = _login(client)
-        client.force_authenticate(User.objects.get(email="logout@example.com"))
-        response = client.post(LOGOUT_URL, {"refresh": "garbage-token"}, content_type="application/json")
+    def test_logout_malformed_token_400(self, api):
+        tokens = _login(api)
+        api.force_authenticate(User.objects.get(email="logout@example.com"))
+        response = api.post(LOGOUT_URL, {"refresh": "garbage-token"}, content_type="application/json")
         assert response.status_code == 400

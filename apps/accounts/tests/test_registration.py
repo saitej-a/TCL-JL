@@ -31,6 +31,7 @@ def post_register(client):
 
 
 class TestRegistrationSuccess:
+    @pytest.mark.django_db(transaction=True)
     def test_new_account_returns_generic_201(self, post_register):
         response = post_register(
             {"email": "new@example.com", "password": VALID_PASSWORD, "password_confirm": VALID_PASSWORD}
@@ -54,6 +55,7 @@ class TestRegistrationSuccess:
 class TestCollisionBranchD1:
     """Existing email → identical 201 + owner notified. No enumeration, ever."""
 
+    @pytest.mark.django_db(transaction=True)
     def test_collision_returns_identical_body(self, post_register):
         User.objects.create_user("owner@example.com", VALID_PASSWORD)
         response = post_register(
@@ -62,6 +64,7 @@ class TestCollisionBranchD1:
         assert response.status_code == 201
         assert response.json() == {"message": SUCCESS_MESSAGE}
 
+    @pytest.mark.django_db(transaction=True)
     def test_collision_notifies_owner_and_creates_nothing(self, post_register):
         User.objects.create_user("owner@example.com", VALID_PASSWORD)
         mail.outbox.clear()
@@ -72,6 +75,7 @@ class TestCollisionBranchD1:
         assert len(mail.outbox) == 1
         assert "registration attempt" in mail.outbox[0].subject.lower()
 
+    @pytest.mark.django_db(transaction=True)
     def test_unknown_email_gets_same_body_but_no_email(self, post_register):
         mail.outbox.clear()
         response = post_register(
@@ -82,6 +86,7 @@ class TestCollisionBranchD1:
         # Exactly one email (the verification), no collision notice.
         assert len(mail.outbox) == 1
 
+    @pytest.mark.django_db(transaction=True)
     def test_collision_is_case_insensitive_via_citext(self, post_register):
         User.objects.create_user("CaseOwner@Example.com", VALID_PASSWORD)
         response = post_register(

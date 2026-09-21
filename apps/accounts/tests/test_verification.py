@@ -54,6 +54,7 @@ class TestVerifyEndpoint:
 
 
 class TestResendEndpoint:
+    @pytest.mark.django_db(transaction=True)
     def test_generic_body_for_unverified_user_and_email_sent(self, client):
         _make_user()
         mail.outbox.clear()
