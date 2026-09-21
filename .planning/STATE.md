@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 2.2 executed (AUTH-02..06 complete); next: /gsd-ns-workflow discuss 3.1
-last_updated: "2026-09-21T16:20:00.000Z"
-last_activity: 2026-09-21 -- 2.2 executed: 92/92 tests, live drill passed (replay→family revoke, D1 collision, 429 drill), docs updated
+stopped_at: Phase 3.2 discussed (D1-D4 locked in CONTEXT.md); next: /plan 3.2
+last_updated: "2026-09-21T18:55:00.000Z"
+last_activity: 2026-09-21 -- 3.2 discuss: D1 transition-chain POST, D2 public endpoint now, D3 substring blocker, D4 405 delete
 progress:
   total_phases: 10
   completed_phases: 0
   total_plans: 27
-  completed_plans: 4
-  percent: 15
+  completed_plans: 5
+  percent: 19
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-19)
 
 **Core value:** Provide anxious candidates with complete clarity on their recruitment progress and community benchmarks without requiring them to expose their real identity or personal credentials.
-**Current focus:** Phase 2.2: Registration, JWT & Account Lifecycle (sub-phase of Phase 2: Authentication, Identity & Custom User System)
+**Current focus:** Phase 3.1: Candidate Profile Model & Status Machine (sub-phase of Phase 3: Candidate Profiles & Public Identity Controls)
 
 ## Current Position
 
 Phase: 3.1 (of 10 — Candidate Profiles & Public Identity Controls); Phases 1 & 2 COMPLETE
-Plan: 1 of 1 in sub-phase 2.2 (combined 02-02 + 02-03) — executed & verified
-Status: Phase 2.2 COMPLETE — AUTH-02..06 shipped; next sub-phase: 3.1 CandidateProfile model
-Last activity: 2026-09-21 -- 2.2 live drill passed: replay→family revocation, D1 collision notify, 429 Retry-After, anonymizing deletion
+Plan: 1 of 1 in current sub-phase (03-01 — executed 2026-09-21)
+Status: Phase 3.1 COMPLETE — next sub-phase 3.2 (Profile API & Privacy Boundaries) not yet discussed/planned
+Last activity: 2026-09-21 -- 3.1 executed: 53 tests green, ruff clean, live drill DRILL-SUCCESS, docs updated
 
-Progress: [██░░░░░░░░] 15%
+Progress: [██░░░░░░░░] 19%
 
 ## Performance Metrics
 
@@ -93,6 +93,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-09-21T16:20:00.000Z
-Stopped at: Phase 2.2 executed & verified — Phase 2 complete; next is Phase 3.1 discussion
-Resume file: .planning/phases/TCS-JL-02.2-registration-jwt-and-account-lifecycle/PLAN.md
+Last session: 2026-09-21T18:55:00.000Z
+Stopped at: Phase 3.2 discussed — decisions locked; plan pending
+Resume file: .planning/phases/TCS-JL-03.2-profile-api-and-privacy-boundaries/CONTEXT.md

@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     "corsheaders",
     # Project apps (09 §3.1 app boundaries)
     "apps.accounts.apps.AccountsConfig",
+    "apps.candidates.apps.CandidatesConfig",
 ]
 
 MIDDLEWARE = [
@@ -88,6 +89,9 @@ DATABASES = {
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "accounts.User"
+
+# Candidate cohort years (PROF-01 via 3.1 D3). Extend via settings, not migrations.
+BATCH_YEARS = ["2024", "2025", "2026"]
 
 # --- Passwords (T2.3) -----------------------------------------------------------
 # First hasher = what set_password()/create_user() emit (the registration path).

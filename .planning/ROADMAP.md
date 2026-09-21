@@ -86,7 +86,7 @@ Plans:
   4. Public serializers strictly omit email, phone, and internal IDs.
 **Plans**: 2 plans  
 Plans:
-- [ ] 03-01: `CandidateProfile` model (1:1 with User), status choices, and public identity toggle logic.
+- [x] 03-01: `CandidateProfile` model (1:1 with User), status choices, and public identity toggle logic. *(executed 2026-09-21)*
 - [ ] 03-02: Profile CRUD endpoints (`/api/v1/profile/`), serializer boundary segregation, and display name impersonation blocking.
 
 **Sub-phases** (planning & execution units; dirs under `.planning/phases/`):
@@ -312,7 +312,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 |-------|----------------|--------|-----------|
 | 1. Project Foundation, Docker & Environment Setup | 0/3 | Not started | - |
 | 2. Authentication, Identity & Custom User System | 3/3 | Complete | 2026-09-21 |
-| 3. Candidate Profiles & Public Identity Controls | 0/2 | Not started | - |
+| 3. Candidate Profiles & Public Identity Controls | 1/2 | In progress | - |
 | 4. Recruitment Timeline Engine | 0/2 | Not started | - |
 | 5. Community Discussions & Forum System | 0/3 | Not started | - |
 | 6. In-App Notifications & FCM Web Push System | 0/3 | Not started | - |

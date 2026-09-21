@@ -109,10 +109,10 @@ Deferred to future post-MVP release.
 | AUTH-04 | Phase 2 | Complete — 2.2: 15m/7d JWT, rotation + family reuse-revocation |
 | AUTH-05 | Phase 2 | Complete — 2.2: anonymizing deletion, row retained as tombstone seam |
 | AUTH-06 | Phase 2 | Complete — 2.2: 5/min combined-bucket login throttle, generic failures |
-| PROF-01 | Phase 3 | Pending |
-| PROF-02 | Phase 3 | Pending |
-| PROF-03 | Phase 3 | Pending |
-| PROF-04 | Phase 3 | Pending |
+| PROF-01 | Phase 3 | Complete — 3.1: batch/stream/region/center model fields; batch via settings-driven BATCH_YEARS (2024–2026) |
+| PROF-02 | Phase 3 | Complete — 3.1: ANONYMOUS default + DISPLAY_NAME mode; resolver never leaks email |
+| PROF-03 | Phase 3 | Complete — 3.1: transition machine REGISTERED→JOINED per 03 §6; WITHDRAWN terminal (D1) |
+| PROF-04 | Phase 3 | Pending (3.2 serializer boundaries) |
 | TIME-01 | Phase 4 | Pending |
 | TIME-02 | Phase 4 | Pending |
 | TIME-03 | Phase 4 | Pending |
