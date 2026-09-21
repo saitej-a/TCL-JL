@@ -1,0 +1,34 @@
+# Planning docs, specs, and CI — not needed to build or serve on Vercel.
+*.md
+.planning/
+.github/
+
+# Local container topology — Vercel builds the Django app itself.
+Dockerfile
+.dockerignore
+docker-compose*.yml
+docker/
+nginx/
+Makefile
+
+# Local env files (deployment values are injected as Vercel env vars).
+.env
+.env.prod
+.env.local
+
+# Test/lint tooling and caches.
+requirements-dev.txt
+pytest.ini
+ruff.toml
+.pytest_cache/
+.ruff_cache/
+.freebuff/
+celerybeat-schedule
+
+# Agent skill docs; contain symlinks the Vercel bundler cannot stat.
+.claude/
+.agents/
+
+# Regenerated during the Vercel build (collectstatic) or local-only.
+staticfiles/
+media/

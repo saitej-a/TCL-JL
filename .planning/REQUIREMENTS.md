@@ -112,7 +112,7 @@ Deferred to future post-MVP release.
 | PROF-01 | Phase 3 | Complete — 3.1: batch/stream/region/center model fields; batch via settings-driven BATCH_YEARS (2024–2026) |
 | PROF-02 | Phase 3 | Complete — 3.1: ANONYMOUS default + DISPLAY_NAME mode; resolver never leaks email |
 | PROF-03 | Phase 3 | Complete — 3.1: transition machine REGISTERED→JOINED per 03 §6; WITHDRAWN terminal (D1) |
-| PROF-04 | Phase 3 | Pending (3.2 serializer boundaries) |
+| PROF-04 | Phase 3 | Complete — 3.2: /profile/ CRUD (active+verified gate, 409 duplicates, 405 delete), public /candidates/{id}/ §23 shape, Author/Candidate public serializers, reserved-token blocker |
 | TIME-01 | Phase 4 | Pending |
 | TIME-02 | Phase 4 | Pending |
 | TIME-03 | Phase 4 | Pending |

@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 3.2 discussed (D1-D4 locked in CONTEXT.md); next: /plan 3.2
-last_updated: "2026-09-21T18:55:00.000Z"
-last_activity: 2026-09-21 -- 3.2 discuss: D1 transition-chain POST, D2 public endpoint now, D3 substring blocker, D4 405 delete
+stopped_at: Phase 3.2 executed (03-02 complete: profile API, public endpoint, redaction boundaries, 208 tests, live drill); next: /discuss 4.1
+last_updated: "2026-09-21T19:55:00.000Z"
+last_activity: 2026-09-21 -- 3.2 executed: D1 atomic transition-chain POST, 409/405 envelopes, §23 public shape, impersonation blocker, live drill all green
 progress:
   total_phases: 10
   completed_phases: 0
   total_plans: 27
-  completed_plans: 5
-  percent: 19
+  completed_plans: 6
+  percent: 22
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-19)
 
 **Core value:** Provide anxious candidates with complete clarity on their recruitment progress and community benchmarks without requiring them to expose their real identity or personal credentials.
-**Current focus:** Phase 3.1: Candidate Profile Model & Status Machine (sub-phase of Phase 3: Candidate Profiles & Public Identity Controls)
+**Current focus:** Phase 3.2: Profile API & Privacy Boundaries (sub-phase of Phase 3: Candidate Profiles & Public Identity Controls)
 
 ## Current Position
 
-Phase: 3.1 (of 10 — Candidate Profiles & Public Identity Controls); Phases 1 & 2 COMPLETE
-Plan: 1 of 1 in current sub-phase (03-01 — executed 2026-09-21)
-Status: Phase 3.1 COMPLETE — next sub-phase 3.2 (Profile API & Privacy Boundaries) not yet discussed/planned
-Last activity: 2026-09-21 -- 3.1 executed: 53 tests green, ruff clean, live drill DRILL-SUCCESS, docs updated
+Phase: 3.2 (of 10 — Candidate Profiles & Public Identity Controls); Phases 1, 2 & 3 COMPLETE
+Plan: 1 of 1 in current sub-phase (03-02 — executed 2026-09-21)
+Status: Phase 3.2 COMPLETE — Phase 3 fully shipped; next sub-phase 4.1 (Timeline Model & Atomic Status Sync) not yet discussed/planned
+Last activity: 2026-09-21 -- 3.2 executed: 208 tests green, ruff clean, no migration drift, live drill all green
 
-Progress: [██░░░░░░░░] 19%
+Progress: [██░░░░░░░░] 22%
 
 ## Performance Metrics
 
@@ -93,6 +93,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-09-21T18:55:00.000Z
-Stopped at: Phase 3.2 discussed — decisions locked; plan pending
-Resume file: .planning/phases/TCS-JL-03.2-profile-api-and-privacy-boundaries/CONTEXT.md
+Last session: 2026-09-21T19:55:00.000Z
+Stopped at: Phase 3.2 executed — Phase 3 complete; 4.1 pending discuss/plan
+Resume file: .planning/ROADMAP.md (Phase 4 section) — start with /gsd-ns-workflow discuss 4.1

@@ -1,10 +1,13 @@
-"""Status transition service (T3.2; 3.1 D1/D2).
+"""Status transition service (T3.2; 3.1 D1/D2) and profile create/update
+lifecycle (T3.4-T3.5; 3.2 D1/D4).
 
 Client-submitted statuses are never trusted: every change goes through
 ``transition_status``. Seam note for 4.1 (TIME-02): status changes will be
 wrapped with timeline-event creation inside one atomic transaction there —
 keep this function the single mutation point.
 """
+
+from django.db import IntegrityError, transaction
 
 from apps.candidates.models import CandidateProfile
 
@@ -28,6 +31,12 @@ ALLOWED_TRANSITIONS: dict[str, set[str]] = {
 }
 
 TERMINAL_STATUSES = {S.JOINED, S.WITHDRAWN}
+
+
+class ProfileAlreadyExistsError(Exception):
+    """A user may own at most one profile (T3.4); rendered as 409 by the view."""
+
+    code = "profile_exists"
 
 
 class InvalidTransitionError(ValueError):
@@ -68,4 +77,38 @@ def transition_status(profile: CandidateProfile, new_status: str) -> CandidatePr
     profile.current_status = new_status
     profile.save(update_fields=["current_status", "updated_at"])
     # 4.1 seam: atomic timeline-event creation wraps this mutation (TIME-02).
+    return profile
+
+
+def create_profile(user, data: dict, requested_status: str | None = None) -> CandidateProfile:
+    """Create a profile pinned REGISTERED, then honor a requested status (3.2 D1)
+    — all inside one transaction. An illegal requested status raises
+    ``InvalidTransitionError`` and rolls back creation: no profile row survives
+    a failed POST. Duplicate creation (T3.4) raises ``ProfileAlreadyExistsError``
+    (IntegrityError caught race-safe)."""
+    try:
+        with transaction.atomic():
+            profile = CandidateProfile.objects.create(
+                user=user, current_status=CandidateProfile.Status.REGISTERED, **data
+            )
+            if requested_status and requested_status != CandidateProfile.Status.REGISTERED:
+                transition_status(profile, requested_status)
+            return profile
+    except IntegrityError:
+        raise ProfileAlreadyExistsError() from None
+
+
+def update_profile(profile: CandidateProfile, data: dict) -> CandidateProfile:
+    """Apply self-editable field changes and an optional status move atomically
+    (04 §21): a rejected transition rolls back the field saves in the same
+    PATCH. Status changes still flow only through ``transition_status``."""
+    requested_status = data.pop("current_status", None)
+    with transaction.atomic():
+        for field, value in data.items():
+            setattr(profile, field, value)
+        if data:
+            profile.save(update_fields=[*data.keys(), "updated_at"])
+        if requested_status is not None and requested_status != profile.current_status:
+            transition_status(profile, requested_status)
+    profile.refresh_from_db()
     return profile

@@ -23,3 +23,6 @@ db.sqlite3
 # static files
 staticfiles/
 
+
+.vercel
+.env*

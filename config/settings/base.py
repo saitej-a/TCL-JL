@@ -5,6 +5,8 @@ docker-compose injects env_file/.env.prod values into container environments.
 """
 
 import os
+import ssl
+import urllib.parse
 from datetime import timedelta
 from pathlib import Path
 
@@ -18,6 +20,9 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "insecure-dev-key-do-not-use-ou
 
 DEBUG = False  # only local.py flips this
 ALLOWED_HOSTS = [h for h in os.environ.get("DJANGO_ALLOWED_HOSTS", "").split(",") if h]
+
+# Origin used to build links inside outbound email (verify / password reset).
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -83,15 +88,42 @@ DATABASES = {
         "PORT": DB_PORT,
         "CONN_MAX_AGE": 600,  # 09 §8 persistent connections
         "CONN_HEALTH_CHECKS": True,
-        "OPTIONS": {"sslmode": os.environ.get("POSTGRES_SSLMODE", "prefer")},
+        "OPTIONS": {
+            "sslmode": os.environ.get("POSTGRES_SSLMODE", "prefer"),
+            # psycopg3 skips server-side prepared statements; required behind
+            # transaction poolers (Neon's -pooler host) and harmless elsewhere.
+            "prepare_threshold": None,
+        },
     }
 }
+
+# Managed Postgres providers (Vercel/Neon) inject a single DATABASE_URL; it takes
+# precedence over the discrete POSTGRES_* variables when present.
+_DATABASE_URL = os.environ.get("DATABASE_URL", "")
+if _DATABASE_URL:
+    _db_url = urllib.parse.urlparse(_DATABASE_URL)
+    _db_query = dict(urllib.parse.parse_qsl(_db_url.query))
+    DATABASES["default"].update(
+        {
+            "NAME": _db_url.path.lstrip("/") or DB_NAME,
+            "USER": urllib.parse.unquote(_db_url.username or DB_USER),
+            "PASSWORD": urllib.parse.unquote(_db_url.password or DB_PASSWORD),
+            "HOST": _db_url.hostname or DB_HOST,
+            "PORT": str(_db_url.port or DB_PORT),
+        }
+    )
+    DATABASES["default"]["OPTIONS"]["sslmode"] = _db_query.get(
+        "sslmode", os.environ.get("POSTGRES_SSLMODE", "prefer")
+    )
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "accounts.User"
 
 # Candidate cohort years (PROF-01 via 3.1 D3). Extend via settings, not migrations.
 BATCH_YEARS = ["2024", "2025", "2026"]
+
+# Reserved display-name tokens (T3.7 via 3.2 D3). Extend via settings, no deploy.
+RESERVED_DISPLAY_NAME_TOKENS = ["TCS", "Tata", "HR", "Admin", "Official", "Moderator"]
 
 # --- Passwords (T2.3) -----------------------------------------------------------
 # First hasher = what set_password()/create_user() emit (the registration path).
@@ -123,11 +155,27 @@ CACHES = {
 SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 
 # --- Celery (T1.6) -------------------------------------------------------------
+# Serverless targets (Vercel) have no long-lived worker process: tasks execute
+# inline in the request instead of being queued. See CELERY_TASK_ALWAYS_EAGER env.
+CELERY_TASK_ALWAYS_EAGER = os.environ.get("CELERY_TASK_ALWAYS_EAGER", "0") == "1"
+
 CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://redis:6379/1")
 CELERY_RESULT_BACKEND = os.environ.get(
     "CELERY_RESULT_BACKEND", "redis://redis:6379/2"
 )  # D-05 partitioning: results live in redis db2
-CELERY_TASK_ALWAYS_EAGER = False
+# Managed Redis (Upstash) hands out rediss:// URLs; Celery does not infer TLS
+# parameters from the scheme, so pass them explicitly next to the URL.
+if CELERY_BROKER_URL.startswith("rediss://"):
+    CELERY_BROKER_USE_SSL = {"ssl_cert_reqs": ssl.CERT_REQUIRED}
+if CELERY_RESULT_BACKEND.startswith("rediss://"):
+    CELERY_REDIS_BACKEND_USE_SSL = {"ssl_cert_reqs": ssl.CERT_REQUIRED}
+if CELERY_TASK_ALWAYS_EAGER:
+    # Eager results are returned in-process and never read back, so keep them
+    # in-process too — no network/TLS round-trip per task-bearing request.
+    # Celery consults the CELERY_RESULT_BACKEND *environment variable* before
+    # Django settings, so clear it here or the override would be ignored.
+    CELERY_RESULT_BACKEND = "cache+memory://"
+    os.environ.pop("CELERY_RESULT_BACKEND", None)
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_TASK_ACKS_LATE = True
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1
@@ -153,7 +201,7 @@ USE_I18N = True
 USE_TZ = True
 
 # --- Static & media --------------------------------------------------------------
-STATIC_URL = "static/"
+STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
