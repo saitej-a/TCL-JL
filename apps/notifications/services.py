@@ -61,16 +61,19 @@ BODY_PUSH_TRUNCATE = 120  # lock-screen body truncation
 
 def _enqueue(notification_id: str, push_context: dict[str, Any] | None = None) -> None:
     """Enqueue asynchronous push delivery task via Celery."""
-    try:
-        from apps.notifications.tasks import send_push_notification
-    except (ImportError, ModuleNotFoundError):
-        send_push_notification = globals().get("send_push_notification")
-        if send_push_notification is None:
-            logger.debug(
-                "send_push_notification task not found; skipping enqueue for %s",
-                notification_id,
-            )
-            return
+    send_push_notification = globals().get("send_push_notification")
+    if send_push_notification is None:
+        try:
+            from apps.notifications.tasks import send_push_notification
+        except (ImportError, ModuleNotFoundError):
+            send_push_notification = None
+
+    if send_push_notification is None:
+        logger.debug(
+            "send_push_notification task not found; skipping enqueue for %s",
+            notification_id,
+        )
+        return
 
     kwargs = dict(push_context) if push_context else {}
     send_push_notification.delay(notification_id, **kwargs)
