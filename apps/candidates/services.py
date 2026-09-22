@@ -98,6 +98,52 @@ def create_profile(user, data: dict, requested_status: str | None = None) -> Can
         raise ProfileAlreadyExistsError() from None
 
 
+# --- Profile completeness (T4.8; 4.2 R1) ----------------------------------------
+
+#: Enrichment fields a candidate can fill after onboarding. Structural (not a
+#: setting): these are the profile's optional fields, and changing them is a
+#: product decision, not a deployment knob.
+PROFILE_COMPLETION_FIELDS: tuple[str, ...] = (
+    "interview_center",
+    "interview_date",
+    "offer_letter_date",
+    "joining_location",
+    "expected_joining_date",
+)
+
+#: One item per enrichment field, plus "status advanced past REGISTERED" and
+#: "has recorded at least one milestone". Equal weights.
+PROFILE_COMPLETION_ITEMS = len(PROFILE_COMPLETION_FIELDS) + 2
+
+
+def compute_profile_completion(profile: CandidateProfile, *, has_events: bool = False) -> int:
+    """Percentage of the completion checklist satisfied (4.2 R1), rounded to an
+    integer.
+
+    Identity fields (``display_name``, ``public_identity_mode``) are excluded
+    **by design**: anonymity is a legitimate privacy choice (3.1 D1), so a
+    candidate who never shares a name must still be able to reach 100% — a
+    completeness meter must not pressure candidates into identifying
+    themselves.
+
+    ``has_events`` is a parameter rather than an import because timeline models
+    import this module, so reaching back would invert 4.1's pinned
+    ``timeline -> candidates`` direction.
+    """
+    filled = 0
+    for field in PROFILE_COMPLETION_FIELDS:
+        value = getattr(profile, field, None)
+        if isinstance(value, str):
+            filled += 1 if value.strip() else 0
+        elif value is not None:
+            filled += 1
+    if profile.current_status != S.REGISTERED:
+        filled += 1
+    if has_events:
+        filled += 1
+    return round(100 * filled / PROFILE_COMPLETION_ITEMS)
+
+
 def update_profile(profile: CandidateProfile, data: dict) -> CandidateProfile:
     """Apply self-editable field changes and an optional status move atomically
     (04 §21): a rejected transition rolls back the field saves in the same

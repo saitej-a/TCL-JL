@@ -126,6 +126,18 @@ BATCH_YEARS = ["2024", "2025", "2026"]
 # Reserved display-name tokens (T3.7 via 3.2 D3). Extend via settings, no deploy.
 RESERVED_DISPLAY_NAME_TOKENS = ["TCS", "Tata", "HR", "Admin", "Official", "Moderator"]
 
+# --- Timeline / dashboard (Phase 4.2) -------------------------------------------
+# 04 §53 recommended initial privacy threshold. When fewer than this many
+# candidate profiles exist, the dashboard's analytics block is suppressed rather
+# than exposing a micro-cohort (a raw count of 1 is personal data). Read at call
+# time so ops can tune it without a deploy.
+ANALYTICS_MIN_COHORT_SIZE = 5
+
+# D3 future-date horizon for timeline events: event_date may not exceed
+# today + this many days (730 ≈ 24 months). JOINING_DATE is legitimately future;
+# JOINING_LETTER is separately restricted to present-or-past in the serializer.
+TIMELINE_FUTURE_HORIZON_DAYS = 730
+
 # --- Passwords (T2.3) -----------------------------------------------------------
 # First hasher = what set_password()/create_user() emit (the registration path).
 # Argon2idHasher pins T2.3's cost params: 64 MiB memory, 3 iterations, 2 threads.

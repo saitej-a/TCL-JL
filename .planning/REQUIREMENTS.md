@@ -27,9 +27,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [ ] **TIME-01**: Candidate can record recruitment milestones (Interview, Selection, Offer, Survey, JL, Date, Joined) with date and notes.
 - [ ] **TIME-02**: Adding or updating milestones atomically synchronizes the candidate's current recruitment status.
-- [ ] **TIME-03**: Timeline endpoints enforce object-level ownership and return HTTP 404 on unauthorized access attempts (IDOR defense).
-- [ ] **TIME-04**: Candidate can view an interactive chronological roadmap of their personal milestones with edit/delete controls.
-- [ ] **TIME-05**: Dashboard endpoint aggregates candidate status progression, latest milestone, and community comparison benchmarks.
+- [x] **TIME-03**: Timeline endpoints enforce object-level ownership and return HTTP 404 on unauthorized access attempts (IDOR defense).
+- [ ] **TIME-04**: Candidate can view an interactive chronological roadmap of their personal milestones with edit/delete controls. *(API half shipped in 4.2 — owners can list/edit/delete their own milestones; the interactive roadmap UI is Phase 9.3)*
+- [x] **TIME-05**: Dashboard endpoint aggregates candidate status progression, latest milestone, and community comparison benchmarks.
 
 ### Community Discussions & Forum (COMM)
 
@@ -115,9 +115,9 @@ Deferred to future post-MVP release.
 | PROF-04 | Phase 3 | Complete — 3.2: /profile/ CRUD (active+verified gate, 409 duplicates, 405 delete), public /candidates/{id}/ §23 shape, Author/Candidate public serializers, reserved-token blocker |
 | TIME-01 | Phase 4 | Complete — 4.1: TimelineEvent model (UUIDv4, 8 event types, CASCADE FK) with date + notes per 03 §7 |
 | TIME-02 | Phase 4 | Complete — 4.1: record_timeline_event walks the 3.1 chain atomically (04 §85); forward-only D2 semantics; blocked chains roll back the insert |
-| TIME-03 | Phase 4 | Pending |
-| TIME-04 | Phase 4 | Pending |
-| TIME-05 | Phase 4 | Pending |
+| TIME-03 | Phase 4 | Complete — 4.2: every queryset scoped to `request.user` + `IsTimelineOwner` object check; foreign and nonexistent UUIDs return byte-identical 404s (06 §4.2.2, 04 §89) |
+| TIME-04 | Phase 4 | Partial — 4.2: owner list/edit/delete endpoints shipped; interactive roadmap UI tracked with 9.3 |
+| TIME-05 | Phase 4 | Complete — 4.2: /dashboard/ aggregates completion, current status, latest milestone, and threshold-suppressed COMMUNITY_REPORTED benchmarks; `unread_notifications` placeholder until Phase 6 |
 | COMM-01 | Phase 5 | Pending |
 | COMM-02 | Phase 5 | Pending |
 | COMM-03 | Phase 5 | Pending |
@@ -167,7 +167,7 @@ Phases are decomposed into decimal sub-phases (directories under `.planning/phas
 | 3.1 Candidate Profile Model & Status Machine | PROF-01, PROF-02, PROF-03 | 03-01 |
 | 3.2 Profile API & Privacy Boundaries | PROF-04 | 03-02 |
 | 4.1 Timeline Model & Atomic Status Sync | TIME-01, TIME-02 | 04-01 — Complete (2026-09-21): TimelineEvent + walk-the-chain sync, 30 tests |
-| 4.2 Timeline API, IDOR Defense & Dashboard | TIME-03, TIME-04, TIME-05 | 04-02 |
+| 4.2 Timeline API, IDOR Defense & Dashboard | TIME-03, TIME-04, TIME-05 | 04-02 — Complete (2026-09-22): timeline CRUD + 404 IDOR defense + dashboard, 81 new tests |
 | 5.1 Forum Models & Deletion Semantics | COMM-03, COMM-04, COMM-05 | 05-01 |
 | 5.2 Feed, Comments & Voting Endpoints | COMM-01, COMM-02, COMM-06, COMM-07, COMM-08 | 05-02, 05-03 |
 | 6.1 Notification & Device Models | NOTIF-01 | 06-01 |

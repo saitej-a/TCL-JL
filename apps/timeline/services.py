@@ -13,10 +13,16 @@ forward. At/past the target is an idempotent no-op; genuinely blocked chains rai
 deleting or re-dating events never regresses the candidate's status.
 """
 
+from django.conf import settings
 from django.db import transaction
+from django.db.models import Count
 
 from apps.candidates.models import CandidateProfile
-from apps.candidates.services import InvalidTransitionError, transition_status
+from apps.candidates.services import (
+    InvalidTransitionError,
+    compute_profile_completion,
+    transition_status,
+)
 from apps.timeline.models import TimelineEvent
 
 S = CandidateProfile.Status
@@ -148,3 +154,91 @@ def delete_timeline_event(event: TimelineEvent) -> None:
     """Remove an event; the candidate's status is forward-only history and is
     never recalculated on deletion (D2)."""
     event.delete()
+
+
+# --- Dashboard (T4.8; 4.2 D1/D2) ------------------------------------------------
+
+#: Statuses counted as "waiting" for the community benchmark — the pre-joining
+#: pipeline tail. JOINED (arrived) and WITHDRAWN (left) are not waiting.
+WAITING_STATUSES: frozenset[str] = frozenset(
+    {
+        S.WAITING_FOR_JOINING_LETTER,
+        S.JOINING_LETTER_RECEIVED,
+        S.JOINING_DATE_RECEIVED,
+    }
+)
+
+#: 04 §65.20 / 01 §1007 — community data must never be presented as official.
+DATA_SOURCE_LABEL = "COMMUNITY_REPORTED"
+
+#: 04 §53 wording, reused verbatim when a cohort is too small to display.
+SUPPRESSED_MESSAGE = "Not enough community data to display this breakdown."
+
+
+def build_dashboard_payload(profile: CandidateProfile) -> dict:
+    """Assemble the 04 §28 dashboard body (D1/D2).
+
+    The response *key contract* is complete from day one so the Phase 9.3 UI
+    never churns; the two blocks whose data sources arrive later fill values,
+    not keys:
+
+    * ``community.unread_notifications`` — hardcoded ``0`` until Phase 6 ships
+      the Notifications model. Documented placeholder, not a silent stub.
+    * ``analytics`` — computed **for real** today from candidate profiles
+      (D1), community-labeled, and suppressed below
+      ``settings.ANALYTICS_MIN_COHORT_SIZE`` (04 §53, D2).
+
+    Exposes aggregate counts only — never another candidate's rows, identifiers,
+    or notes.
+    """
+    has_events = profile.timeline_events.exists()
+    latest = profile.timeline_events.order_by("-event_date", "-created_at").first()
+
+    payload = {
+        "profile": {
+            "completion_percentage": compute_profile_completion(profile, has_events=has_events),
+            "current_status": profile.current_status,
+        },
+        # Exactly the two 04 §28 keys: descriptions are private notes and never
+        # travel further than the owner's own timeline responses (04 §744).
+        "timeline": {
+            "latest_event": None
+            if latest is None
+            else {
+                "event_type": latest.event_type,
+                "event_date": latest.event_date.isoformat(),
+            }
+        },
+        "community": {"unread_notifications": 0},  # wired in Phase 6
+        "analytics": _analytics_block(),
+    }
+    return payload
+
+
+def _analytics_block() -> dict:
+    """Community benchmark: waiting total + per-status distribution (D2).
+
+    Below the cohort threshold both counts are **omitted** rather than zeroed —
+    a misleading ``0`` is worse than an explicit suppression, and a count of 1
+    would identify an individual. ``status_distribution`` always carries all 11
+    status keys so the frontend contract is stable.
+    """
+    total = CandidateProfile.objects.count()
+    minimum = getattr(settings, "ANALYTICS_MIN_COHORT_SIZE", 5)
+    if total < minimum:
+        return {
+            "data_source": DATA_SOURCE_LABEL,
+            "suppressed": True,
+            "message": SUPPRESSED_MESSAGE,
+        }
+
+    counts = {
+        row["current_status"]: row["n"]
+        for row in CandidateProfile.objects.values("current_status").annotate(n=Count("id"))
+    }
+    return {
+        "data_source": DATA_SOURCE_LABEL,
+        "suppressed": False,
+        "community_waiting_count": sum(counts.get(s, 0) for s in WAITING_STATUSES),
+        "status_distribution": {status: counts.get(status, 0) for status, _ in S.choices},
+    }
