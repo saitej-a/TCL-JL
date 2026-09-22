@@ -222,8 +222,8 @@ Plans:
   5. Staff can triage reports and soft-delete content directly in Django Admin.
 **Plans**: 3 plans  
 Plans:
-- [ ] 08-01: `Report` model with database XOR check constraint, reporting endpoint, and pending deduplication.
-- [ ] 08-02: Automated scam regex heuristics scanner and 60-minute duplicate post debouncing in Redis.
+- [x] 08-01: `Report` model with database XOR check constraint, reporting endpoint, and pending deduplication. *Executed 2026-09-22 (plan 08.1-01)*
+- [x] 08-02: Automated scam regex heuristics scanner and 60-minute duplicate post debouncing in Redis. *Executed 2026-09-22 (plan 08.1-02)*
 - [ ] 08-03: Django Admin `ReportAdmin` customization, announcement model/broadcast task, and user suspension protocol.
 
 **Sub-phases** (planning & execution units; dirs under `.planning/phases/`):
@@ -232,6 +232,7 @@ Plans:
 **Goal**: `Report` model with XOR post/comment constraint, throttled deduplicated reporting, and automated scam regex scanning (MOD-01..04).
 **Plans**: 08-01, 08-02
 **Done when**: XOR constraint enforced at DB level; scam posts are intercepted pre-publication.
+**Executed**: 2026-09-22 (plans 08.1-01 + 08.1-02) — `apps/moderation` with the XOR constraint, pending-dedup UniqueConstraints, throttled reporting endpoint, scam scanner on all four write surfaces, and the title+body debounce; 694 tests green. Done-when met.
 
 #### Phase 8.2: Admin Triage & Ban Workflow
 **Goal**: Django Admin triage with bulk actions, announcement broadcasts, and atomic ban protocol — `is_active=False`, token blacklist, push halt (MOD-05, MOD-06).

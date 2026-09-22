@@ -61,10 +61,10 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Moderation, Safety & Administration (MOD)
 
-- [ ] **MOD-01**: Candidates can report objectionable posts or comments selecting from standardized violation reasons.
-- [ ] **MOD-02**: Database enforces XOR check constraint guaranteeing a report targets either a post or a comment, never both.
-- [ ] **MOD-03**: Duplicate pending reports on the same target by the same user are blocked, and reporting is throttled (10/hr).
-- [ ] **MOD-04**: Automated regex heuristics scan post bodies for paid job scams, fee extortion, and NextStep password requests.
+- [x] **MOD-01**: Candidates can report objectionable posts or comments selecting from standardized violation reasons. *(8.1: `POST /api/v1/reports/` with 08 §3.1's seven reasons, tombstone-inclusive targets, 04 §63–§65 envelope)*
+- [x] **MOD-02**: Database enforces XOR check constraint guaranteeing a report targets either a post or a comment, never both. *(8.1: `report_exactly_one_target` CheckConstraint + mirrored `clean()`; target FKs use CASCADE, a documented deviation from 08 §3.2's SET_NULL, which would breach the constraint on target hard-delete)*
+- [x] **MOD-03**: Duplicate pending reports on the same target by the same user are blocked, and reporting is throttled (10/hr). *(8.1: two conditional UniqueConstraints + service check with IntegrityError mapping; `reports` scope with `throttle_scope` on the view per 7.2 R1, 429 asserted)*
+- [x] **MOD-04**: Automated regex heuristics scan post bodies for paid job scams, fee extortion, and NextStep password requests. *(8.1: `heuristics.py` with 08 §8.1's four patterns as code constants; hard-block 400 `scam_pattern_detected` pre-publication on all four write call sites — post/comment, create/edit with merged-state scanning — and a category-naming message that never echoes the regex; T8.5's 60-min debounce extended with a body hash, posts only)*
 - [ ] **MOD-05**: Moderators can review reports in Django Admin with bulk actions (Dismiss, Soft-Delete, Lock, Warn, Ban).
 - [ ] **MOD-06**: Banning an account atomically sets `is_active=False`, blacklists refresh tokens, and halts device push alerts.
 
@@ -137,10 +137,9 @@ Deferred to future post-MVP release.
 | ANAL-03 | Phase 7 | Complete — 7.2: both baselines published separately (`survey_to_joining_letter` = READINESS_SURVEY→JL satisfying this requirement's literal wording, plus `offer_to_joining_letter` = 7.1 D1's chain), each with its own sample size, `<5` floor and per-source disclosure; surfaced through the cached overview payload |
 | ANAL-04 | Phase 7 | Complete — 7.1 shipped slice-level suppression; 7.2 adds the **per-row** floor (below-floor rows dropped entirely, all-below-floor responses suppressed wholesale per 04 §53), with `COMMUNITY_REPORTED` + disclaimer on every payload |
 | ANAL-05 | Phase 7 | Complete — 7.2: labeled + cached with the hourly `warm_analytics_cache` warmup; `ANALYTICS_CACHE_TTL = 7200` deviates from T7.8's `ttl = 15m` by design (see 7.2-SUMMARY.md) |
-| MOD-01 | Phase 8 | Pending |
-| MOD-02 | Phase 8 | Pending |
-| MOD-03 | Phase 8 | Pending |
-| MOD-04 | Phase 8 | Pending |
+| MOD-01 | Phase 8 | Complete — 8.1: reporting endpoint with the seven standardized reasons (04 §63–§65) |
+| MOD-02 | Phase 8 | Complete — 8.1: XOR CheckConstraint at DB level + clean() mirror; CASCADE target FKs documented deviation |
+| MOD-04 | Phase 8 | Complete — 8.1: scanner on post/comment create+edit, hard-block pre-publication, code-constant patterns |
 | MOD-05 | Phase 8 | Pending |
 | MOD-06 | Phase 8 | Pending |
 | UI-01 | Phase 9 | Pending |
