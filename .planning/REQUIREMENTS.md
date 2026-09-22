@@ -35,9 +35,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [ ] **COMM-01**: Candidates can browse a paginated community feed filtered by category, search keywords, and sort order (Latest vs Trending).
 - [ ] **COMM-02**: Candidates can create discussion posts categorized by topic (JOINING_LETTER, OFFER, LOCATION, etc.) with rate limiting (5/hr).
-- [ ] **COMM-03**: Candidates can add comments and 1-level replies to discussion posts.
-- [ ] **COMM-04**: Candidates can upvote/unvote posts with database-level uniqueness enforcement (1 vote per user per post).
-- [ ] **COMM-05**: Content authors and moderators can soft-delete posts and comments, replacing body text with clean tombstones.
+- [x] **COMM-03**: Candidates can add comments and 1-level replies to discussion posts.
+- [x] **COMM-04**: Candidates can upvote/unvote posts with database-level uniqueness enforcement (1 vote per user per post).
+- [x] **COMM-05**: Content authors and moderators can soft-delete posts and comments, replacing body text with clean tombstones. *(model layer: flags + tombstone helpers; the delete endpoints are 5.2)*
 - [ ] **COMM-06**: Moderators can pin announcements and lock controversial threads to disable new comments.
 - [ ] **COMM-07**: Posts display public identity handles with deterministic avatars and cohort tags.
 - [ ] **COMM-08**: Feed and comment querysets use `select_related()` and `.annotate()` to eliminate N+1 database queries.
@@ -120,9 +120,9 @@ Deferred to future post-MVP release.
 | TIME-05 | Phase 4 | Complete — 4.2: /dashboard/ aggregates completion, current status, latest milestone, and threshold-suppressed COMMUNITY_REPORTED benchmarks; `unread_notifications` placeholder until Phase 6 |
 | COMM-01 | Phase 5 | Pending |
 | COMM-02 | Phase 5 | Pending |
-| COMM-03 | Phase 5 | Pending |
-| COMM-04 | Phase 5 | Pending |
-| COMM-05 | Phase 5 | Pending |
+| COMM-03 | Phase 5 | Complete — 5.1: Comment model with strict 1-level reply validation (nested_reply / parent_post_mismatch / parent_deleted) on the create_comment path |
+| COMM-04 | Phase 5 | Complete — 5.1: unique_user_post_vote UNIQUE constraint on (user, post), verified at the DB level; toggle endpoints in 5.2 |
+| COMM-05 | Phase 5 | Complete — 5.1: is_deleted flags + one neutral tombstone copy (TOMBSTONE_TEXT) with display_* masking; Delete endpoints land in 5.2 |
 | COMM-06 | Phase 5 | Pending |
 | COMM-07 | Phase 5 | Pending |
 | COMM-08 | Phase 5 | Pending |
@@ -168,7 +168,7 @@ Phases are decomposed into decimal sub-phases (directories under `.planning/phas
 | 3.2 Profile API & Privacy Boundaries | PROF-04 | 03-02 |
 | 4.1 Timeline Model & Atomic Status Sync | TIME-01, TIME-02 | 04-01 — Complete (2026-09-21): TimelineEvent + walk-the-chain sync, 30 tests |
 | 4.2 Timeline API, IDOR Defense & Dashboard | TIME-03, TIME-04, TIME-05 | 04-02 — Complete (2026-09-22): timeline CRUD + 404 IDOR defense + dashboard, 81 new tests |
-| 5.1 Forum Models & Deletion Semantics | COMM-03, COMM-04, COMM-05 | 05-01 |
+| 5.1 Forum Models & Deletion Semantics | COMM-03, COMM-04, COMM-05 | 05-01 — Complete (2026-09-22): Post/Comment/PostVote + soft-deletion semantics, 56 tests |
 | 5.2 Feed, Comments & Voting Endpoints | COMM-01, COMM-02, COMM-06, COMM-07, COMM-08 | 05-02, 05-03 |
 | 6.1 Notification & Device Models | NOTIF-01 | 06-01 |
 | 6.2 Device Registration & FCM Push | NOTIF-02, NOTIF-03, NOTIF-04, NOTIF-05, NOTIF-06 | 06-02, 06-03 |

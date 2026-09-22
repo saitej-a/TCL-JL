@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     "apps.accounts.apps.AccountsConfig",
     "apps.candidates.apps.CandidatesConfig",
     "apps.timeline.apps.TimelineConfig",
+    "apps.community.apps.CommunityConfig",
 ]
 
 MIDDLEWARE = [
@@ -137,6 +138,28 @@ ANALYTICS_MIN_COHORT_SIZE = 5
 # today + this many days (730 ≈ 24 months). JOINING_DATE is legitimately future;
 # JOINING_LETTER is separately restricted to present-or-past in the serializer.
 TIMELINE_FUTURE_HORIZON_DAYS = 730
+
+# --- Community posting (Phase 5.1, 5.1 D1) --------------------------------------
+# Post categories: the merged union of 01 §7 (product), 03 §9 and T5.1 (task spec),
+# with 01's OFFER_LETTER spelling kept so the vocabulary matches TimelineEvent's
+# event types (Phase 7 analytics filters both). Read at call time (like
+# BATCH_YEARS) so adding a category needs no migration and no deploy — 01 §7:
+# "Categories should be extensible". 5.2's GET /posts/categories/ serves these
+# same keys + labels, so this list is the single source of truth.
+POST_CATEGORIES = [
+    ("GENERAL", "General"),
+    ("JOINING_LETTER", "Joining Letter"),
+    ("OFFER_LETTER", "Offer Letter"),
+    ("JOINING_DATE", "Joining Date"),
+    ("LOCATION", "Location"),
+    ("INTERVIEW", "Interview"),
+    ("DOCUMENTS", "Documents"),
+    ("DISCUSSION", "Discussion"),
+    ("TCS_PROCESS", "TCS Process"),
+    ("HELP", "Help"),
+    ("ANNOUNCEMENT", "Announcements"),
+    ("OTHER", "Other"),
+]
 
 # --- Passwords (T2.3) -----------------------------------------------------------
 # First hasher = what set_password()/create_user() emit (the registration path).

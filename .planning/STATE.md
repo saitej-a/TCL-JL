@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 4.2 verified (VERIFICATION.md: PASS on all 4 roadmap criteria; 59/61 independent probe checks; F1 deletion-cascade defect found upstream in 2.2); next: /discuss 5.1
-last_updated: "2026-09-22T01:00:00.000Z"
-last_activity: 2026-09-22 -- 4.2 verified: adversarial probe 59/61, two mutation probes confirmed the IDOR tests are load-bearing, F1 (HIGH, upstream) logged
+stopped_at: Phase 5.1 executed (05-01 complete: Post/Comment/PostVote + soft-deletion semantics, 56 tests, 23/23 live ORM checks); next: /plan 5.2
+last_updated: "2026-09-22T02:00:00.000Z"
+last_activity: 2026-09-22 -- 5.1 executed: community models, DB-level vote uniqueness, tombstone semantics, 375 tests green
 progress:
   total_phases: 10
   completed_phases: 4
   total_plans: 27
-  completed_plans: 8
-  percent: 30
+  completed_plans: 9
+  percent: 33
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-19)
 
 **Core value:** Provide anxious candidates with complete clarity on their recruitment progress and community benchmarks without requiring them to expose their real identity or personal credentials.
-**Current focus:** Phase 4: Recruitment Timeline Engine — COMPLETE (4.1 + 4.2). Next: Phase 5 (Community Discussions & Forum System), starting at sub-phase 5.1.
+**Current focus:** Phase 5: Community Discussions & Forum System — 1/3 plans (5.1 shipped; 5.2 feed/comment/vote endpoints next).
 
 ## Current Position
 
-Phase: 4 (of 10 — Recruitment Timeline Engine) COMPLETE; Phases 1, 2, 3, 4 done; Phase 5 not yet discussed
-Plan: 2 of 2 in current phase (04-01 executed 2026-09-21, 04-02 executed 2026-09-22)
-Status: Phase 4 COMPLETE — next sub-phase 5.1 (Forum Models & Deletion Semantics) not yet discussed/planned
-Last activity: 2026-09-22 -- 4.2 executed: 319 tests green, ruff clean, migration drift clean, live HTTP JWT drill 31/31
+Phase: 5 (of 10 — Community Discussions & Forum System); Phases 1-4 COMPLETE, Phase 5 in progress
+Plan: 1 of 3 in current phase (05-01 executed 2026-09-22)
+Status: Phase 5.1 COMPLETE — next sub-phase 5.2 (Feed, Comments & Voting Endpoints) to be discussed/planned
+Last activity: 2026-09-22 -- 5.1 executed: 375 tests green, ruff clean, migration drift clean, live ORM drill 23/23
 
-Progress: [███░░░░░░░] 30%
+Progress: [███░░░░░░░] 33%
 
 ## Performance Metrics
 
@@ -48,7 +48,7 @@ Progress: [███░░░░░░░] 30%
 | 2. Authentication, Identity & Custom User System | 3/3 | - | - |
 | 3. Candidate Profiles & Public Identity Controls | 2/2 | - | - |
 | 4. Recruitment Timeline Engine | 2/2 | - | - |
-| 5. Community Discussions & Forum System | 0/3 | - | - |
+| 5. Community Discussions & Forum System | 1/3 | - | - |
 | 6. In-App Notifications & FCM Web Push System | 0/3 | - | - |
 | 7. Community Analytics & Privacy Engine | 0/2 | - | - |
 | 8. Moderation, Anti-Spam & Administration | 0/3 | - | - |
@@ -57,7 +57,7 @@ Progress: [███░░░░░░░] 30%
 
 **Recent Trend:**
 
-- Last 5 plans: 03-01, 03-02, 04-01, 04-02 (green after lint/format and test-expectation fixes)
+- Last 5 plans: 03-02, 04-01, 04-02, 05-01 (green after lint/format fixes; 05-01's 56 tests passed on the first run)
 - Trend: Stable
 
 ## Accumulated Context
@@ -80,11 +80,17 @@ Recent decisions affecting current work:
 - [Phase 4.2 — D2]: Benchmark = waiting-state total + per-status distribution, both threshold-suppressed (`ANALYTICS_MIN_COHORT_SIZE = 5`, 04 §53) and labeled `COMMUNITY_REPORTED` (04 §65.20); suppressed output omits the counts rather than zeroing them.
 - [Phase 4.2 — D3]: Timeline `event_date` bound = today + 24 months (settings-driven), applied to every event type, plus a present-or-past carve-out for `JOINING_LETTER`; `JOINING_DATE` stays legitimately future-datable.
 - [Phase 4.2 — R4]: `auto_update_status` is not client-controllable — the API hardcodes `True`, so a caller cannot record a milestone while leaving `current_status` stale (04 §121).
+- [Phase 5.1 — D1]: Post categories are the merged union of three disagreeing spec lists (12 keys, `OFFER` folded into 01's `OFFER_LETTER` so the vocabulary matches `TimelineEvent`), held in `POST_CATEGORIES` and read at call time — the field carries no `choices`, so extending the list needs no migration.
+- [Phase 5.1 — D2]: `Post.author`/`Comment.author` are required and `PROTECT`; the retained anonymized User row (2.2) is the tombstone, which 3.2's author serializer already renders safely — no NULL-author branch anywhere. Consequence: a hard user delete is refused, so F1's fix must delete the *profile*.
+- [Phase 5.1 — D3]: One neutral tombstone copy (`This content has been removed.`) covers author- and moderator-deletion alike, because the single `is_deleted` flag cannot distinguish them; originals stay in the row (08 §390) and masking happens only in `tombstones.display_*`.
+- [Phase 5.1 — D4/P1]: Deleted posts leave the feed (03 §28) while tombstoned comments stay in their threads; `Comment.parent` is `SET_NULL` (not CASCADE/PROTECT) so a disappearing parent promotes a reply instead of destroying it, and post hard-deletion is never blocked.
+- [Phase 5.1 — P4]: Integrity guarantees are deliberately unequal and documented as such — duplicate votes are impossible at the database level (`unique_user_post_vote`), while the 1-level reply rule is application-level because PostgreSQL cannot express a cross-row `CHECK`.
 
 ### Pending Todos
 
 - **Decide F1's disposition** (VERIFICATION.md 4.2): `anonymize_delete_account` does not delete the CandidateProfile or its timeline events, contrary to 06 §4.2 step 4 / §2.7 "Zero Orphaned PII". Either fix the 2.2 deletion service (delete the profile inside the same transaction; the FK cascade removes events) or record an explicit decision to retain anonymized profiles — then either way exclude them from the dashboard cohort (F2).
-- Phase 5 (Community) should reuse `AuthorPublicSerializer` (3.2) for post/comment authors — it is the single community-facing redaction boundary.
+- Phase 5.2 (next): reuse `AuthorPublicSerializer` (3.2) as the only community author shape, delegate creation to `community.services.create_post` / `create_comment` so the reply-depth rule stays enforced on the write path, and render bodies through `tombstones.display_body`/`display_title`.
+- Phase 5.2 carried decision: 08 §406 renders a deleted post's author as unattributed — the author-nulling rule for deleted posts (and whether a tombstoned comment keeps its handle) is a 5.2 serializer decision.
 - Phase 6/7 wiring: fill `community.unread_notifications` (Notifications model) and extend the dashboard analytics block beyond the profile-derived counts already shipped in 4.2. Phase 7's suppression must apply the cohort floor **per bucket**, not just globally (4.2's residual-risk note).
 - Low-severity polish from 4.2 verification: shared JSON 404 for unresolvable paths (F3), `Allow` header on 405 (F4), whether `WITHDRAWN` should count as profile-completion progress (F5), timeline write throttling if abuse appears (F6).
 
@@ -104,6 +110,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-09-22T00:00:00.000Z
-Stopped at: Phase 4.2 executed — Phase 4 complete, 5.1 pending discuss/plan
-Resume file: .planning/ROADMAP.md (Phase 5 section) — start with /gsd-ns-workflow discuss 5.1
+Last session: 2026-09-22T02:00:00.000Z
+Stopped at: Phase 5.1 executed — 5.2 (Feed, Comments & Voting Endpoints) pending
+Resume file: .planning/ROADMAP.md (Phase 5 section) — start with /gsd-ns-workflow discuss 5.2

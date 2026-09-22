@@ -139,7 +139,7 @@ Plans:
   5. Feed querysets use `select_related()` and `.annotate()` to eliminate N+1 queries.
 **Plans**: 3 plans  
 Plans:
-- [ ] 05-01: `Post`, `Comment`, and `PostVote` models with soft-deletion flags, reply depth validators, and unique vote constraints.
+- [x] 05-01: `Post`, `Comment`, and `PostVote` models with soft-deletion flags, reply depth validators, and unique vote constraints. *(executed 2026-09-22)*
 - [ ] 05-02: Feed listing, search, category filtering, post creation (rate-limited), and post detail endpoints.
 - [ ] 05-03: Comment listing/creation, upvote toggle endpoints, and staff lock/pin controls.
 
@@ -314,7 +314,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 2. Authentication, Identity & Custom User System | 3/3 | Complete | 2026-09-21 |
 | 3. Candidate Profiles & Public Identity Controls | 2/2 | Complete | 2026-09-21 |
 | 4. Recruitment Timeline Engine | 2/2 | Complete | 2026-09-22 |
-| 5. Community Discussions & Forum System | 0/3 | Not started | - |
+| 5. Community Discussions & Forum System | 1/3 | In progress | - |
 | 6. In-App Notifications & FCM Web Push System | 0/3 | Not started | - |
 | 7. Community Analytics & Privacy Engine | 0/2 | Not started | - |
 | 8. Moderation, Anti-Spam & Administration | 0/3 | Not started | - |
