@@ -136,6 +136,19 @@ RESERVED_DISPLAY_NAME_TOKENS = ["TCS", "Tata", "HR", "Admin", "Official", "Moder
 # time so ops can tune it without a deploy.
 ANALYTICS_MIN_COHORT_SIZE = 5
 
+# --- Analytics caching (Phase 7.2, D-05) -----------------------------------------
+# TTL for the cached analytics payloads. The hourly `warm-analytics-cache-hourly`
+# beat entry (config/celery.py) refreshes the hot keys; this TTL is the *backstop*,
+# so a missed or failed beat run leaves the data an hour stale rather than emptying
+# the cache and stampeding live aggregations.
+#
+# Deliberate deviation from 10_MVP_TASKS.md T7.8's `ttl = 15m`: a 15-minute TTL
+# expires three times per warmup cycle, which makes the hourly task decorative.
+# ROADMAP Phase 7 success criterion 4 ("cached in Redis with hourly Celery Beat
+# warmup routines") is the authoritative statement, and T7.8 is recorded as
+# superseded in the 7.2 SUMMARY. Read at call time (the BATCH_YEARS precedent).
+ANALYTICS_CACHE_TTL = 7200  # 2 hours
+
 # D3 future-date horizon for timeline events: event_date may not exceed
 # today + this many days (730 ≈ 24 months). JOINING_DATE is legitimately future;
 # JOINING_LETTER is separately restricted to present-or-past in the serializer.
@@ -229,6 +242,12 @@ CELERY_TASK_ROUTES = {
     "accounts.tasks.send_verification_email": {"queue": "default"},
     "accounts.tasks.send_password_reset_email": {"queue": "default"},
     "notifications.tasks.prune_stale_devices": {"queue": "maintenance"},
+    # Phase 7.2 D-07: periodic refresh of derived data nobody is waiting on, so it
+    # belongs on the housekeeping queue rather than competing with request-driven
+    # work on `default`. The beat entry already exists in config/celery.py; the
+    # decorator's name= must byte-match this key or the route silently does not
+    # apply (the 6.2 lesson).
+    "analytics.tasks.warm_analytics_cache": {"queue": "maintenance"},
 }
 CELERY_TIMEZONE = "UTC"
 
@@ -283,6 +302,11 @@ REST_FRAMEWORK = {
         # Notifications & device scopes (Phase 6.2 — 07 §10)
         "device_registration": "10/hour",
         "notifications_reads": "60/min",
+        # Analytics read scope (Phase 7.2, D-11). Cache keys multiply per filter
+        # combination, so an anonymous caller can walk region x hiring_type x batch
+        # and force uncached computation of the app's costliest aggregate queries.
+        # Real users make single-digit calls per session.
+        "analytics_reads": "120/min",
     },
 }
 
