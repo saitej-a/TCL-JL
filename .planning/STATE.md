@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 5.1 executed (05-01 complete: Post/Comment/PostVote + soft-deletion semantics, 56 tests, 23/23 live ORM checks); next: /plan 5.2
+stopped_at: Phase 5 executed (5.2 on 2026-09-22: feed/comments/votes/lock-pin endpoints, 66 tests, 33/33 live HTTP checks); Phase 5 COMPLETE (2/2 sub-phases); next: /discuss 6.1
 last_updated: "2026-09-22T02:00:00.000Z"
-last_activity: 2026-09-22 -- 5.1 executed: community models, DB-level vote uniqueness, tombstone semantics, 375 tests green
+last_activity: 2026-09-22 -- 5.2 executed: community endpoints (feed, thread, votes, moderation), 441 tests green, 33/33 live HTTP drill
 progress:
   total_phases: 10
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 27
-  completed_plans: 9
-  percent: 33
+  completed_plans: 11
+  percent: 41
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-19)
 
 **Core value:** Provide anxious candidates with complete clarity on their recruitment progress and community benchmarks without requiring them to expose their real identity or personal credentials.
-**Current focus:** Phase 5: Community Discussions & Forum System — 1/3 plans (5.1 shipped; 5.2 feed/comment/vote endpoints next).
+**Current focus:** Phase 5 COMPLETE (all COMM requirements shipped). Next: Phase 6 — In-App Notifications & FCM Web Push.
 
 ## Current Position
 
-Phase: 5 (of 10 — Community Discussions & Forum System); Phases 1-4 COMPLETE, Phase 5 in progress
-Plan: 1 of 3 in current phase (05-01 executed 2026-09-22)
-Status: Phase 5.1 COMPLETE — next sub-phase 5.2 (Feed, Comments & Voting Endpoints) to be discussed/planned
-Last activity: 2026-09-22 -- 5.1 executed: 375 tests green, ruff clean, migration drift clean, live ORM drill 23/23
+Phase: 5 COMPLETE (of 10 — Community Discussions & Forum System); Phases 1-5 COMPLETE, Phase 6 next
+Plan: 05-02 + 05-03 executed 2026-09-22 (one execution unit)
+Status: Phase 5.2 COMPLETE — all roadmap success criteria 1-5 hold (verified in-suite + 33/33 live HTTP drill)
+Last activity: 2026-09-22 -- 5.2 executed: 441 tests green, ruff clean, migration drift clean, live HTTP drill 33/33
 
-Progress: [███░░░░░░░] 33%
+Progress: [████░░░░░░] 41%
 
 ## Performance Metrics
 
@@ -48,7 +48,7 @@ Progress: [███░░░░░░░] 33%
 | 2. Authentication, Identity & Custom User System | 3/3 | - | - |
 | 3. Candidate Profiles & Public Identity Controls | 2/2 | - | - |
 | 4. Recruitment Timeline Engine | 2/2 | - | - |
-| 5. Community Discussions & Forum System | 1/3 | - | - |
+| 5. Community Discussions & Forum System | 3/3 | - | - |
 | 6. In-App Notifications & FCM Web Push System | 0/3 | - | - |
 | 7. Community Analytics & Privacy Engine | 0/2 | - | - |
 | 8. Moderation, Anti-Spam & Administration | 0/3 | - | - |
@@ -111,5 +111,5 @@ Items acknowledged and deferred at milestone close, most recent first:
 ## Session Continuity
 
 Last session: 2026-09-22T02:00:00.000Z
-Stopped at: Phase 5.1 executed — 5.2 (Feed, Comments & Voting Endpoints) pending
-Resume file: .planning/ROADMAP.md (Phase 5 section) — start with /gsd-ns-workflow discuss 5.2
+Stopped at: Phase 5.2 executed — Phase 5 COMPLETE (COMM-01..08 all shipped); Phase 6 (Notifications & FCM) next
+Resume file: .planning/ROADMAP.md (Phase 6 section) — start with /gsd-ns-workflow discuss 6.1

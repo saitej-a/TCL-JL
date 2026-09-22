@@ -276,8 +276,22 @@ REST_FRAMEWORK = {
         "auth_register": "3/hour",
         "auth_password_reset": "3/hour",
         "auth_verify_resend": "1/min",
-    },  # community/device scopes land in Phases 5/6/8
+        # Community write scopes (04 §41/§42; plan 05-02 R7)
+        "community_writes": "30/min",
+    },  # notifications/device scopes land in Phases 6/8
 }
+
+# --- Community (Phase 5.2 / plan 05-02) --------------------------------------------
+# D1/R1: trending = activity score (votes + comments) within a settings-held
+# window. The window *filters* — a post with zero in-window activity never
+# occupies the tab — so an empty tab means genuinely nothing happened.
+TRENDING_WINDOW_DAYS = 14
+
+# D2 avatar seed: HMAC(secret, candidate_id) % palette_size. Falls back to
+# SECRET_KEY — a documented trade-off, since rotating SECRET_KEY would silently
+# recolour every anonymous avatar (05 §60's "discussions remain followable").
+# Ops can pin AVATAR_SEED_SECRET independently when that stability matters.
+AVATAR_SEED_SECRET = os.environ.get("DJANGO_AVATAR_SEED_SECRET", "") or SECRET_KEY
 
 # --- Email (console in dev; SMTP injected in real deployments) ----------------------
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"

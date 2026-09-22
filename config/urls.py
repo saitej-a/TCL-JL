@@ -1,7 +1,7 @@
 """Root URL configuration. Phase 1.2 shipped the root status route + health
 probes; Phase 2.2 adds the /api/v1/ auth, me, and account surface; Phase 3.2
 adds the profile + public candidate surface; Phase 4.2 adds the timeline CRUD
-and dashboard surface."""
+and dashboard surface; Phase 5.2 adds the community feed/comments/votes."""
 
 from django.contrib import admin
 from django.urls import include, path
@@ -17,4 +17,5 @@ urlpatterns = [
     path("api/v1/", include("apps.accounts.urls_account")),
     path("api/v1/", include("apps.candidates.urls")),
     path("api/v1/", include("apps.timeline.urls")),
+    path("api/v1/", include("apps.community.urls")),
 ]

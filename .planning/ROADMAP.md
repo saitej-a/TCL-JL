@@ -12,7 +12,7 @@ Each phase is decomposed into decimal **sub-phases** (e.g. 1.1, 1.2 — see Phas
 - [ ] **Phase 2: Authentication, Identity & Custom User System** - Custom User model (UUIDv4, case-insensitive email), Argon2id hashing, SimpleJWT rotation, email verification, and password reset.
 - [ ] **Phase 3: Candidate Profiles & Public Identity Controls** - 1:1 CandidateProfile model, status choice state machine, ANONYMOUS vs DISPLAY_NAME modes, and serializer boundaries.
 - [ ] **Phase 4: Recruitment Timeline Engine** - TimelineEvent model, atomic status synchronization service, IDOR protection, and candidate dashboard endpoint.
-- [ ] **Phase 5: Community Discussions & Forum System** - Categorized posts, 1-level nested replies, unique upvoting constraint, soft-deletion handling, and N+1 query elimination.
+- [x] **Phase 5: Community Discussions & Forum System** - Categorized posts, 1-level nested replies, unique upvoting constraint, soft-deletion handling, and N+1 query elimination.
 - [ ] **Phase 6: In-App Notifications & FCM Web Push System** - Notification model, multi-device registration, Celery push tasks with exponential backoff, and background service worker.
 - [ ] **Phase 7: Community Analytics & Privacy Engine** - Cohort aggregation engine, wait-time benchmarks, mandatory `<5` candidate privacy suppression, and Redis caching.
 - [ ] **Phase 8: Moderation, Anti-Spam & Administration** - XOR report model, automated scam regex heuristics, Django Admin triage tools, and session-severing user ban workflows.
@@ -128,7 +128,7 @@ Plans:
 **Done when**: Unauthorized timeline access returns 404; dashboard aggregates community benchmarks.
 
 ### Phase 5: Community Discussions & Forum System
-**Goal**: Build categorized discussion threads, 1-level nested comments, unique post voting, and soft deletion.  
+**Goal**: Build categorized discussion threads, 1-level nested comments, unique post voting, and soft deletion.
 **Depends on**: Phase 3  
 **Requirements**: COMM-01, COMM-02, COMM-03, COMM-04, COMM-05, COMM-06, COMM-07, COMM-08  
 **Success Criteria**:
@@ -140,8 +140,8 @@ Plans:
 **Plans**: 3 plans  
 Plans:
 - [x] 05-01: `Post`, `Comment`, and `PostVote` models with soft-deletion flags, reply depth validators, and unique vote constraints. *(executed 2026-09-22)*
-- [ ] 05-02: Feed listing, search, category filtering, post creation (rate-limited), and post detail endpoints.
-- [ ] 05-03: Comment listing/creation, upvote toggle endpoints, and staff lock/pin controls.
+- [x] 05-02: Feed listing, search, category filtering, post creation (rate-limited), and post detail endpoints. *(executed 2026-09-22)*
+- [x] 05-03: Comment listing/creation, upvote toggle endpoints, and staff lock/pin controls. *(executed 2026-09-22)*
 
 **Sub-phases** (planning & execution units; dirs under `.planning/phases/`):
 
