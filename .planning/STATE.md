@@ -5,10 +5,10 @@ milestone_name: milestone
 current_phase: "7.1"
 current_phase_name: Analytics Aggregation & Privacy Suppression
 status: executing
-stopped_at: Milestone v1.0 summary generated — 7.1 executed and awaiting UAT + canonical verification (6.1 UAT paused 1/7, 6.2 UAT 0/6, 7.1 UAT 0/7)
+stopped_at: 6.1/6.2/7.1 UATs closed on user attestation (24 passes, no check executed) — all three still blocked from transition by missing VERIFICATION.md and SECURITY.md
 last_updated: "2026-09-22T16:13:33.139Z"
 last_activity: 2026-09-22
-last_activity_desc: Milestone v1.0 summary generated (.planning/reports/MILESTONE_SUMMARY-v1.0.md)
+last_activity_desc: 6.1/6.2/7.1 UATs closed on user attestation; v1.0 milestone summary generated
 state_head: 95f6151bfaf0a052d16e9cd05bb51f585351532c
 progress:
   total_phases: 10
@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-09-19)
 
 Phase: 7.1 EXECUTED (of 10 — Community Analytics & Privacy Engine); Phases 1-4 complete (4.2 independently verified PASS), **Phase 5 independently verified FAIL with two HIGH defects still live**, 6.1/6.2/7.1 executed but unverified
 Plan: 07-01 executed 2026-09-22 (4 tasks, zero models, zero migrations, 22 tests, 16/16 live drill checks)
-Status: 7.1 awaiting UAT (test 1 of 7) + canonical verification; v1.0 milestone summary generated
+Status: UAT-recorded, not verified — 6.1/6.2/7.1 UATs closed complete on user attestation (0 of 24 checks executed); all three lack VERIFICATION.md and SECURITY.md and cannot transition
 Last activity: 2026-09-22 -- Milestone v1.0 summary generated
 
 Progress: [████░░░░░░] 48%
@@ -109,7 +109,7 @@ Recent decisions affecting current work:
 
 - **Fix 05.2's two HIGH defects before any Phase 5 COMPLETE claim survives** (surfaced again by the v1.0 milestone summary): `feed_queryset` in `apps/community/views_services.py` never filters `is_deleted=False` (trending does), so deleted posts still appear in the default feed and in `?search=`; `PostListCreateView` declares no `throttle_classes` and there is no `DEFAULT_THROTTLE_CLASSES`, so `POST /api/v1/community/posts/` is unbounded. Both were verified still present in the current tree. Repair `test_deleted_posts_absent_from_feed` too — it asserts on the masked tombstone title, so it is vacuous and passed while the bug was live. Also open from that verification: the feed card's missing `body_preview` (F3) and the vote response's missing `voted` (F4).
 - **Wire the account-deletion device revocation** (NEW — found by direct code inspection during the milestone summary, never recorded by any phase): `anonymize_delete_account` (`apps/accounts/services.py`) still carries the literal placeholder `# >>> Phase 6 hook: revoke all FCM device registrations here. <<<`, which 6.2's plan promised to replace with `user.devices.all().delete()`. A deleted account therefore keeps active `Device` rows with live FCM tokens, and the push worker will still attempt delivery to them. Fix alongside F1 (delete the profile + let the timeline cascade) in one atomic transaction.
-- **Resume the 6.1 UAT** (`.planning/phases/TCS-JL-06.1-notification-device-models/06.1-UAT.md`, status `testing`): test 1 of 7 (cold start smoke test) was presented with evidence and is awaiting `pass` or an issue description. `audit-open` reports no other open items.
+- **Three UATs closed by attestation — but none of the three phases is verified** (2026-09-22): 6.1, 6.2 and 7.1 recorded 24 `pass` results at the user's instruction with `source: user-attested` and **not one check executed**; each file carries a provenance note naming the attester. These are acceptance decisions, not evidence. All three still need a canonical `VERIFICATION.md`, and the completion predicate cannot even be evaluated in this repo — `gsd_run phase uat-passed 6.1 --require-verification` returns `Error: Phase 6.1 not found` (the project-code resolution failure below). Separately, `workflow.security_enforcement` is on with two active `verify:post` step hooks (`secure-phase` → SECURITY.md, `validate-phase` → VALIDATION.md) and **no phase has ever produced a SECURITY.md**, so the security gate blocks advancement on its own. Do not report 6.1, 6.2 or 7.1 as transitioned.
 - **Decide F1's disposition** (VERIFICATION.md 4.2): `anonymize_delete_account` does not delete the CandidateProfile or its timeline events, contrary to 06 §4.2 step 4 / §2.7 "Zero Orphaned PII". Either fix the 2.2 deletion service (delete the profile inside the same transaction; the FK cascade removes events) or record an explicit decision to retain anonymized profiles — then either way exclude them from the dashboard cohort (F2).
 - **Decide ANAL-03's true wait-time baseline** (7.1 finding): the requirement says "between survey submission and joining letter issuance", but the locked 7.1 D1 chain starts at OFFER_LETTER (INTERVIEW-event and profile-date fallbacks) and never reads a READINESS_SURVEY event. Either record that the offer-letter baseline is the intended product meaning, or add the survey event as a lowest-priority fallback in 7.2 — do not leave the requirement text and the code disagreeing at verification time.
 - Phase 7.2 (next): expose the 7.1 service layer as `GET /api/v1/analytics/overview|batches|hiring-types|regions/` (04 §48-51 shapes already match the service payloads), add `generated_at` and the §52 timeline analytics helper, wrap the helpers in the Redis caching layer with the hourly Celery Beat warmup, and keep every response attributed (`COMMUNITY_REPORTED` + disclaimer).
