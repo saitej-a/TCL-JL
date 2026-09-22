@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     "apps.timeline.apps.TimelineConfig",
     "apps.community.apps.CommunityConfig",
     "apps.notifications.apps.NotificationsConfig",
+    "apps.analytics.apps.AnalyticsConfig",
 ]
 
 MIDDLEWARE = [
