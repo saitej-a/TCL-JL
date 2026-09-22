@@ -170,7 +170,10 @@ def validate_filters(
     a free-text field ("candidates in any location are supported"), and a whitelist
     built from regions that currently have candidates would 400 the legitimate
     case of a real region with no data yet. It is bounded by length and charset
-    instead, which is what actually bounds the key space.
+    instead, which bounds the key space alongside the round-tripping normalization.
+    The charset is deliberately permissive enough for real place names (`Sector 62`,
+    `Navi Mumbai`, `St. Mary's`) — safety comes from the digest (see below), so this
+    is input hygiene rather than an injection barrier.
 
     Raises:
         InvalidAnalyticsFilter: for an unknown hiring stream or batch year, or a
@@ -197,7 +200,7 @@ def validate_filters(
         if (
             not value
             or len(value) > REGION_FILTER_MAX_LENGTH
-            or not all(ch.isalpha() or ch in " -.'" for ch in value)
+            or not all(ch.isalnum() or ch in " -.'(),/&" for ch in value)
         ):
             raise InvalidAnalyticsFilter("region", region)
         normalized["region"] = value.lower()

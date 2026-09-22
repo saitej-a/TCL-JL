@@ -4,18 +4,18 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: "7.2"
 current_phase_name: Analytics Endpoints & Redis Caching
-status: context-gathered
-stopped_at: 7.2 context gathered (4 areas, 16 decisions) — resolves 7.1's two owed decisions (per-row suppression, ANAL-03 baseline); ready for /gsd-ns-workflow plan 7.2
-last_updated: "2026-09-22T16:41:19.000Z"
+status: executed
+stopped_at: 7.2 planned and executed (6 tasks, 5 commits) — five anonymous endpoints, payload cache + hourly warmup, per-row suppression; 638 tests green, 19/19 live HTTP drill; awaiting verification
+last_updated: "2026-09-22T17:02:00.000Z"
 last_activity: 2026-09-22
-last_activity_desc: 7.2 discuss-phase completed — endpoint surface, caching, per-row suppression and the ANAL-03 baseline settled
-state_head: d16c3d3b1bccc0fb669662a8368ca548fc7b99ab
+last_activity_desc: 7.2 executed — analytics endpoints, Redis caching and per-row suppression live; both of 7.1's owed decisions delivered
+state_head: 814b9d58acf018267c3a09239d53a34d9ff86048
 progress:
   total_phases: 10
   completed_phases: 5
   total_plans: 27
-  completed_plans: 13
-  percent: 48
+  completed_plans: 14
+  percent: 52
 ---
 
 # Project State
@@ -25,14 +25,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-19)
 
 **Core value:** Provide anxious candidates with complete clarity on their recruitment progress and community benchmarks without requiring them to expose their real identity or personal credentials.
-**Current focus:** Phase 7 — Community Analytics & Privacy Engine. 7.1 (read-only aggregation + wait-time + `<5` suppression service layer) is executed and awaiting verification; **7.2 context is now gathered** (endpoints, public landing stats, Redis caching, per-row suppression) and is ready to plan.
+**Current focus:** Phase 7 — Community Analytics & Privacy Engine. Both plans (7.1 service layer, 7.2 endpoints + Redis caching) are executed; **Phase 7 now awaits verification** (`/gsd-ns-workflow verify 7.2`).
 
 ## Current Position
 
-Phase: 7.2 CONTEXT GATHERED (of 10 — Community Analytics & Privacy Engine); Phases 1-4 complete (4.2 independently verified PASS), **Phase 5 independently verified FAIL with two HIGH defects still live**, 6.1/6.2/7.1 executed but unverified
-Plan: 07-01 executed 2026-09-22 (4 tasks, zero models, zero migrations, 22 tests, 16/16 live drill checks); 07-02 not yet planned
-Status: UAT-recorded, not verified — 6.1/6.2/7.1 UATs closed complete on user attestation (0 of 24 checks executed); all three lack VERIFICATION.md and SECURITY.md and cannot transition
-Last activity: 2026-09-22 -- Phase 7.2 context gathered (4 areas, 16 decisions)
+Phase: 7.2 EXECUTED (of 10 — Community Analytics & Privacy Engine); Phases 1-4 complete (4.2 independently verified PASS), **Phase 5 independently verified FAIL with two HIGH defects still live**, 6.1/6.2/7.1/7.2 executed but unverified
+Plan: 07-01 executed 2026-09-22 (22 tests, 16/16 live drill); 07-02 executed 2026-09-22 (6 tasks, 32 new tests, 19/19 live HTTP drill, zero models/migrations)
+Status: UAT-recorded, not verified — 6.1/6.2/7.1 UATs closed complete on user attestation (0 of 24 checks executed); 7.2 has no UAT session yet; all lack VERIFICATION.md and SECURITY.md and cannot transition
+Last activity: 2026-09-22 -- Phase 7.2 planned and executed
 
 Progress: [████░░░░░░] 48%
 
@@ -54,14 +54,14 @@ Progress: [████░░░░░░] 48%
 | 4. Recruitment Timeline Engine | 2/2 | - | - |
 | 5. Community Discussions & Forum System | 3/3 | - | - |
 | 6. In-App Notifications & FCM Web Push System | 1/3 | - | - |
-| 7. Community Analytics & Privacy Engine | 1/2 | - | - |
+| 7. Community Analytics & Privacy Engine | 2/2 | - | - |
 | 8. Moderation, Anti-Spam & Administration | 0/3 | - | - |
 | 9. Frontend Single Page Application (React + Tailwind) | 0/4 | - | - |
 | 10. Security Audits, E2E Testing, Seed Data & Launch Readiness | 0/2 | - | - |
 
 **Recent Trend:**
 
-- Last 5 plans: 05-01, 05-02+05-03, 06-01, 06-02, 07-01 (07-01: 22 new tests, one own-test bug found and fixed — a hand-built `date(2026, 1, 1 + 50)` overflowed January and only failed at 40+ day waits — 606-test suite green, zero migration drift, ruff clean, 16/16 live drill checks)
+- Last 5 plans: 05-02+05-03, 06-01, 06-02, 07-01, 07-02 (07-02: 32 new tests, 638-test suite green, zero migration drift, ruff clean, 19/19 live HTTP drill checks — and the drill found four real problems before the gates did: ambient dev data breaking two seeded assumptions, a wrong-endpoint filter probe, a same-second timestamp comparison, and a stale cache served to the first read)
 - Trend: Stable
 
 ## Accumulated Context
@@ -107,6 +107,9 @@ Recent decisions affecting current work:
 - [Phase 7.2 — D-04/D-05/D-06/D-07]: The cached unit is the **assembled response payload per endpoint + filter signature**, reusing 7.1's functions verbatim (one compute path, one serialize path). TTL is 7200s in a settings key read at call time — a **recorded deviation from `10_MVP_TASKS.md` T7.8's `ttl = 15m`**, which cannot coexist with an hourly warmup (a 15-minute TTL expires three times per cycle, making the beat task decorative); ROADMAP criterion 4 is authoritative. `generated_at` is written into the cached payload at compute time so a cache hit reports when its numbers were computed. `warm_analytics_cache` is routed to the `maintenance` queue, joining `prune_stale_devices`.
 - [Phase 7.2 — D-08…D-12]: All five read endpoints are anonymous — 04 §6 lists "Landing-page information" and "Public aggregate statistics" under Anonymous, so this is spec-mandated, not chosen. 7.2 builds **04 §80 `GET /api/v1/public/stats/`** (the roadmap's "public landing stats endpoint", T7.9, consumed by 05_UI_UX §746) as its own thin endpoint because §80's cross-app count keys are not the analytics overview shape. **04 §52 `/analytics/timeline/` is deferred to backlog** (no requirement owns it, §108's test list omits it). An anon-scoped `analytics_reads` throttle closes the cache-busting path (unfiltered `default` was rejected because a caller can walk region × hiring_type × batch to force uncached computation), and filters are whitelist-validated against model choices + `BATCH_YEARS` with 400 on unknown values — which also bounds the cache key space.
 - [Phase 7.2 — D-13…D-16]: ANAL-03 is closed **literally** by publishing **both intervals as separate metrics** — survey→JL (`READINESS_SURVEY`, the requirement's and T7.7's wording) and D1's offer→JL — each with its own sample size and its own `<5` floor, because the survey is later than the offer (different numbers, not interchangeable) and `12_SEED_DATA` gives only ≈20% of the cohort a survey event (a survey-only metric would routinely suppress). They surface through `/analytics/overview/` (04 defines no wait-time endpoint). Deleted/anonymized accounts **stay counted** exactly as 7.1's aggregations do, accepting 4.2's F1/F2 rather than changing published cohort semantics in an exposure phase. Each metric discloses its baseline and per-source sample sizes, so a mixed average is never presented as one number.
+- [Phase 7.2 — R1]: **DRF's `ScopedRateThrottle` reads the scope from the view, not the class.** `allow_request` does `self.scope = getattr(view, 'throttle_scope', None)` and returns `True` — allowing the request — when the view declares none, so a class-level `scope` alone is inert. 7.2 therefore sets `throttle_scope` on its base view *and* asserts the bucket engages (429 after the rate is exceeded), because declaring the class and trusting it is exactly how a throttle silently does nothing. Found while wiring this: **community's `CommunityWriteRateThrottle` is inert on all six of its views** (see Pending Todos).
+- [Phase 7.2 — R2]: The region filter is bounded by length (100, the model's `max_length`) and charset (`isalnum` plus ` -.'(),/&`) rather than by a vocabulary, because 3.1 D3 makes `region` free text and a whitelist built from regions that *currently* have candidates would 400 a legitimate region with no data yet. Digits are deliberately permitted (`Sector 62`), and safety comes from the key being a sha256 digest rather than the raw value — the charset check is input hygiene, not an injection barrier.
+- [Phase 7.2 — R3]: **Cached analytics have no invalidation on data change.** A payload lives up to `ANALYTICS_CACHE_TTL` (2h) and is refreshed hourly by the warmup, so a manual data fix is not visible publicly until one of those fires. That is the designed trade-off (D-05) rather than a defect, but it is operationally visible: the 7.2 drill had to purge the `analytics:*` namespace before asserting *live* data, having been served the previous run's payload on its first read.
 - [Phase 7.1 — R1/R2]: The aggregations are per-bucket ORM walks (one `values("batch").annotate(Count)` then one status-count query per bucket) rather than a single `GROUP BY (bucket, status)`, so each call costs O(buckets) queries; correct and readable at MVP scale, and 7.2's Redis warmup is what makes it cheap. The plan's unused `Avg`/`Max`/`Min`/`Q`/`Decimal` imports were dropped, and `DISCLAIMER_TEXT` was wrapped to satisfy the 100-char E501 limit.
 
 ### Pending Todos
@@ -118,6 +121,7 @@ Recent decisions affecting current work:
 - ~~**Decide ANAL-03's true wait-time baseline**~~ — **RESOLVED 2026-09-22 by 7.2 D-13**: both intervals are published as separate metrics (survey→JL per the requirement, offer→JL per D1), each with its own sample size, own `<5` floor and baseline disclosure. ANAL-03 can move off Partial when 7.2 executes; no requirement text needs rewriting.
 - Phase 7.2 (next): expose the 7.1 service layer as `GET /api/v1/analytics/overview|batches|hiring-types|regions/` (04 §48-51 shapes already match the service payloads), add `generated_at`, build `GET /api/v1/public/stats/` (04 §80), apply the per-row floor (D-01) and the survey→JL metric (D-13), wrap the helpers in the Redis caching layer with the hourly Celery Beat warmup, and keep every response attributed (`COMMUNITY_REPORTED` + disclaimer). **Context is gathered — plan 07-02 from `07.2-CONTEXT.md`.** Two carry-forward constraints for the planner: 7.2 must **update `test_phase_boundary.py` deliberately** (7.1 D3 asserts the app has no views/urls/tasks), and the route/decorator name must match `config/celery.py`'s reserved `analytics.tasks.warm_analytics_cache` exactly or the `maintenance` route silently does not apply. **04 §52 `/analytics/timeline/` is deferred to backlog by D-10** — it is a recorded gap, not an oversight.
 - Phase 5.2 carried decision: 08 §406 renders a deleted post's author as unattributed — the author-nulling rule for deleted posts (and whether a tombstoned comment keeps its handle) is a 5.2 serializer decision.
+- **Community's write throttle is inert (NEW — found while wiring 7.2's read throttle, never recorded by any phase):** `apps/community/throttles.py`'s `CommunityWriteRateThrottle` subclasses `ScopedRateThrottle`, but **none of the six community views that attach it declare `throttle_scope`**, and DRF's `ScopedRateThrottle.allow_request` returns `True` (allow) whenever the view declares no scope. So post/comment/vote/lock/pin writes are unthrottled in fact, not merely under-specified — the class being attached looks like protection in review. Fix: add `throttle_scope = "community_writes"` to those views (the `apps/accounts/views.py` pattern, which *does* engage) plus a test asserting the bucket actually 429s; also give `PostListCreateView` its missing `throttle_classes` (05.2 F2). `apps/notifications/throttles.py` is unaffected — it uses `UserRateThrottle`, where the class-level `scope` is authoritative.
 - ~~Phase 7 wiring: per-bucket floor still open~~ — **RESOLVED 2026-09-22 by 7.2 D-01/D-02/D-03**: the floor applies per result row, below-floor rows are dropped entirely, and one setting governs both levels. Carries one consequence into execution: 7.1's tests that assert slice-level-only behaviour must be updated rather than deleted. Still open: the dashboard's own analytics block needs 4.2's profile-derived counts extended to the 7.1 helpers.
 - Low-severity polish from 4.2 verification: shared JSON 404 for unresolvable paths (F3), `Allow` header on 405 (F4), whether `WITHDRAWN` should count as profile-completion progress (F5), timeline write throttling if abuse appears (F6).
 
@@ -126,6 +130,7 @@ Recent decisions affecting current work:
 - **Phase 5 is marked COMPLETE while independently verified FAIL (HIGH):** 05-02's `VERIFICATION.md` verdict is FAIL on two HIGH acceptance-criteria defects, both re-confirmed live in the current tree (deleted posts in the feed/search; unthrottled post creation). STATE.md's prose, REQUIREMENTS.md (`COMM-01`/`COMM-02` = Complete) and ROADMAP.md (05-02/05-03 ticked, Phase 5 = 3/3) all contradict that verdict, and 05.2's findings were dropped from Pending Todos by later phases writing over this section. Do not carry a Phase 5 or milestone COMPLETE claim until F1/F2 are fixed and re-probed. Details: `.planning/phases/TCS-JL-05.2-feed-comments-and-voting-endpoints/VERIFICATION.md`, summarised in `.planning/reports/MILESTONE_SUMMARY-v1.0.md` § 6.
 - **F1 (HIGH, pre-existing in Phase 2.2, surfaced by 4.2 verification):** deleted candidates retain their profile row (with `display_name`, `batch`, `region`, `current_status`) and all private timeline events. Not a 4.2 regression — 4.1/4.2 assumed the deletion flow was implemented. Blocks any milestone claim of 06 §4.2 compliance until decided. 7.1 inherits it directly: the aggregation cohorts count those retained profiles, so the analytics themselves now include anonymized-but-present candidates (the 4.2 F2 exclusion question is still unanswered).
 - ~~**Per-bucket suppression gap (MEDIUM)**~~ — **RESOLVED 2026-09-22 by 7.2 D-01/D-02** (per-row floor; whole-response suppression when nothing survives). The vector closes when 7.2 executes; until then the live endpoints do not yet exist, so there is no exposure window in the current tree.
+- **Community writes are unthrottled in fact (HIGH, new in 7.2):** see Pending Todos — the throttle class is attached to six views but never engages, because DRF reads the scope from the view and none of them declare one. Adjacent to 05.2's F2 (missing `throttle_classes` on post creation) but distinct from it: even the views that *have* the class attached get no rate limiting.
 - **Public analytics will count anonymized accounts (accepted, new in 7.2 D-15):** 4.2's F1/F2 retention gap means a deleted candidate keeps a profile row, so **every published cohort count includes candidates who have left the community** — and 7.2 D-15 deliberately keeps that behaviour rather than changing cohort semantics inside an exposure phase. The fix belongs with the retention model (delete the profile + let the timeline cascade, alongside the still-unwired device revocation above). Until then, public numbers overstate the present community.
 
 ## Deferred Items
@@ -145,8 +150,8 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-09-22T16:41:19.000Z
-Stopped at: 7.2 discuss-phase complete — `07.2-CONTEXT.md` (16 decisions across suppression granularity, cache shape & warmup, endpoint surface, and ANAL-03's baseline) plus `07.2-DISCUSSION-LOG.md` written; the incremental checkpoint was removed. Both decisions 7.1 left open are settled. Next: `/gsd-ns-workflow plan 7.2`.
-Resume file: .planning/phases/TCS-JL-07.2-analytics-endpoints-and-redis-caching/07.2-CONTEXT.md
+Last session: 2026-09-22T17:02:00.000Z
+Stopped at: 7.2 planned and executed. Five anonymous endpoints (04 §48–§51 + §80), payload-level Redis caching behind the reserved hourly warmup, per-row `<5` suppression, `analytics_reads` throttling and whitelist filter validation are live; every gate green (638 tests, ruff, `makemigrations --check`) and the 19/19 HTTP drill restored the database to 21 candidates / 66 events. Next: `/gsd-ns-workflow verify 7.2`, then Phase 8 (moderation).
+Resume file: .planning/phases/TCS-JL-07.2-analytics-endpoints-and-redis-caching/07.2-SUMMARY.md
 
 **Still owed elsewhere (unchanged by this session):** 7.1's canonical `VERIFICATION.md` is what unblocks its transition; 6.1/6.2/7.1 UATs remain attestation-only; Phase 5's two HIGH defects and F1's deletion-flow decision are live in the tree.

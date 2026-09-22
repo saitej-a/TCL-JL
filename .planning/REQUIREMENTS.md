@@ -53,11 +53,11 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Community Analytics & Privacy Engine (ANAL)
 
-- [ ] **ANAL-01**: Candidates can view aggregated community benchmarks (total tracked, waiting for JL, received JL, joined).
-- [ ] **ANAL-02**: Candidates can filter analytics by batch, hiring stream, and region.
-- [ ] **ANAL-03**: System calculates average wait times (in days) between survey submission and joining letter issuance. *(wait-time engine shipped in 7.1 — OFFER_LETTER → JOINING_LETTER with INTERVIEW-event and profile-date fallbacks, mean/median/min/max and a `<5` sample floor; the JSON endpoint and 7.1's OFFER-baseline divergence from this requirement's literal "survey submission" baseline are both open — see 7.2 and the 7.1 SUMMARY findings)*
-- [ ] **ANAL-04**: System strictly suppresses cohort breakdowns with fewer than 5 candidates to protect candidate anonymity. *(suppression rule shipped in 7.1 — `check_privacy_suppression` gates all four aggregation helpers and the wait-time sample, and every payload carries `COMMUNITY_REPORTED` + the non-affiliation disclaimer; endpoint exposure arrives in 7.2)*
-- [ ] **ANAL-05**: All analytics responses are labeled as COMMUNITY_REPORTED and cached in Redis with hourly warmup tasks.
+- [x] **ANAL-01**: Candidates can view aggregated community benchmarks (total tracked, waiting for JL, received JL, joined). *(7.2: `GET /api/v1/analytics/overview/` per 04 §48, plus `GET /api/v1/public/stats/` per 04 §80 for the landing counters — anonymous by 04 §6)*
+- [x] **ANAL-02**: Candidates can filter analytics by batch, hiring stream, and region. *(7.2: `?hiring_type=&region=` on `/batches/`, `?batch=&region=` on `/hiring-types/`, `?batch=&hiring_type=` on `/regions/`; whitelist-validated with a 400 that names the parameter, and values normalized so case/whitespace variants share one cache key)*
+- [x] **ANAL-03**: System calculates average wait times (in days) between survey submission and joining letter issuance. *(7.1 shipped the engine; **7.2 closes the baseline divergence by publishing both intervals as separate metrics** — `survey_to_joining_letter` (READINESS_SURVEY → JOINING_LETTER, this requirement's literal wording and T7.7's) alongside `offer_to_joining_letter` (7.1 D1's chain). Each carries its own sample size, its own `<5` floor and per-source sample disclosure, exposed through the cached overview payload. Publishing one number would have required redefining either the requirement or the shipped engine.)*
+- [x] **ANAL-04**: System strictly suppresses cohort breakdowns with fewer than 5 candidates to protect candidate anonymity. *(7.1 shipped the slice-level rule; **7.2 extends it to every result row** — a below-floor row is dropped entirely (never zeroed or partially revealed) and an all-below-floor response returns the 04 §53 payload. This closes 4.2's residual-risk note about a batch row of 3 inside a large national slice.)*
+- [x] **ANAL-05**: All analytics responses are labeled as COMMUNITY_REPORTED and cached in Redis with hourly warmup tasks. *(7.2: `data_source` + non-affiliation disclaimer on every response including through the cache; payload-level caching via Django's cache framework with `ANALYTICS_CACHE_TTL = 7200` as the backstop behind `analytics.tasks.warm_analytics_cache`, which runs hourly on the `maintenance` queue from the beat entry reserved in `config/celery.py`. TTL deliberately deviates from T7.8's `ttl = 15m`, which cannot coexist with an hourly warmup.)*
 
 ### Moderation, Safety & Administration (MOD)
 
@@ -132,11 +132,11 @@ Deferred to future post-MVP release.
 | NOTIF-04 | Phase 6 | Pending |
 | NOTIF-05 | Phase 6 | Pending |
 | NOTIF-06 | Phase 6 | Pending |
-| ANAL-01 | Phase 7 | Pending |
-| ANAL-02 | Phase 7 | Pending |
-| ANAL-03 | Phase 7 | Partial — 7.1: wait-time engine in `apps/analytics/services.py` (OFFER→JL primary, INTERVIEW-event then profile-date fallbacks, mean/median/min/max, negative intervals excluded, `<5` sample floor). Open: the requirement's literal baseline is readiness-survey submission, which D1's locked chain does not include — flagged in 7.1-SUMMARY.md for the parent-phase verification |
-| ANAL-04 | Phase 7 | Complete (service layer) — 7.1: `<5` cohort suppression enforced by `check_privacy_suppression` on overview, batch, hiring-type, region and wait-time outputs, with full-cohort suppression (no partial sub-breakdowns) and `COMMUNITY_REPORTED` + disclaimer on every payload; endpoint exposure in 7.2 |
-| ANAL-05 | Phase 7 | Pending |
+| ANAL-01 | Phase 7 | Complete — 7.2: `/analytics/overview/`, `/batches/`, `/hiring-types/`, `/regions/` (04 §48–§51) and `/public/stats/` (04 §80), all anonymous per 04 §6, all served through the payload cache |
+| ANAL-02 | Phase 7 | Complete — 7.2: documented filter combinations per endpoint, whitelist-validated against the profile model's choices and `BATCH_YEARS` with 400 `invalid_filter`, and normalized so case/whitespace variants share a cache key |
+| ANAL-03 | Phase 7 | Complete — 7.2: both baselines published separately (`survey_to_joining_letter` = READINESS_SURVEY→JL satisfying this requirement's literal wording, plus `offer_to_joining_letter` = 7.1 D1's chain), each with its own sample size, `<5` floor and per-source disclosure; surfaced through the cached overview payload |
+| ANAL-04 | Phase 7 | Complete — 7.1 shipped slice-level suppression; 7.2 adds the **per-row** floor (below-floor rows dropped entirely, all-below-floor responses suppressed wholesale per 04 §53), with `COMMUNITY_REPORTED` + disclaimer on every payload |
+| ANAL-05 | Phase 7 | Complete — 7.2: labeled + cached with the hourly `warm_analytics_cache` warmup; `ANALYTICS_CACHE_TTL = 7200` deviates from T7.8's `ttl = 15m` by design (see 7.2-SUMMARY.md) |
 | MOD-01 | Phase 8 | Pending |
 | MOD-02 | Phase 8 | Pending |
 | MOD-03 | Phase 8 | Pending |
@@ -173,7 +173,7 @@ Phases are decomposed into decimal sub-phases (directories under `.planning/phas
 | 6.1 Notification & Device Models | NOTIF-01 | 06-01 — Complete (2026-09-22): Notification/Device/NotificationPreference + notification_read_state constraint, 45 new tests |
 | 6.2 Device Registration & FCM Push | NOTIF-02, NOTIF-03, NOTIF-04, NOTIF-05, NOTIF-06 | 06-02, 06-03 |
 | 7.1 Analytics Aggregation & Privacy Suppression | ANAL-03, ANAL-04 | 07-01 — Complete (2026-09-22): `apps/analytics` service layer (read-only, zero models/migrations) + cohort aggregation, wait-time engine, `<5` suppression, 22 tests + 16/16 live drill |
-| 7.2 Analytics Endpoints & Redis Caching | ANAL-01, ANAL-02, ANAL-05 | 07-02 |
+| 7.2 Analytics Endpoints & Redis Caching | ANAL-01, ANAL-02, ANAL-03, ANAL-05 | 07-02 — Complete (2026-09-22): five anonymous endpoints (04 §48–§51 + §80), payload-level Redis cache with the reserved hourly warmup, per-row `<5` suppression, `analytics_reads` throttle, whitelist filter validation, 32 new tests + 19/19 live HTTP drill checks |
 | 8.1 Report Model & Scam Heuristics | MOD-01, MOD-02, MOD-03, MOD-04 | 08-01, 08-02 |
 | 8.2 Admin Triage & Ban Workflow | MOD-05, MOD-06 | 08-03 |
 | 9.1 SPA Foundation & API Client | UI-01, UI-02 | 09-01 |
@@ -187,4 +187,4 @@ Note: UI-01 (responsive SPA) spans sub-phases 9.1–9.4; foundation ownership in
 
 ---
 *Requirements defined: 2026-09-19*  
-*Last updated: 2026-09-22 after 7.1 (analytics scoring + privacy suppression service layer) execution*
+*Last updated: 2026-09-22 after 7.2 (analytics endpoints + Redis caching) execution*
