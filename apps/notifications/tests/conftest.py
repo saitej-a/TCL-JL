@@ -114,8 +114,13 @@ def make_comment(db):
 
 @pytest.fixture(autouse=True)
 def clear_cache():
-    """LocMemCache isolation between test runs (throttles, debounce)."""
+    """LocMemCache and recording backend isolation between test runs."""
     cache.clear()
+    from apps.notifications.backends import RecordingPushBackend, get_push_backend
+
+    backend = get_push_backend()
+    if isinstance(backend, RecordingPushBackend):
+        backend.clear()
 
 
 @pytest.fixture

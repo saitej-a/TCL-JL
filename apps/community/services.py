@@ -12,7 +12,7 @@ hard-delete path (5.1 D3/D4: removal is a flag, never a deletion).
 """
 
 from django.core.exceptions import ValidationError as DjangoValidationError
-from django.db import models
+from django.db import models, transaction
 
 from apps.community.models import Comment, Post
 from apps.community.validators import (
@@ -108,7 +108,13 @@ def create_comment(post: Post, author, *, body: str, parent: Comment | None = No
     except DjangoValidationError as exc:
         raise _reject_comment(exc) from exc
 
-    candidate.save()
+    with transaction.atomic():
+        candidate.save()
+        # Phase 6 hook: in-app notification + push enqueue (06.2 D10/D11)
+        from apps.notifications.services import notify_comment_created
+
+        notify_comment_created(candidate)
+
     return candidate
 
 

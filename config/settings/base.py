@@ -310,3 +310,4 @@ PUSH_BACKEND = os.environ.get("PUSH_BACKEND", "auto")  # firebase | recording | 
 FIREBASE_CREDENTIALS_PATH = os.environ.get("FIREBASE_CREDENTIALS_PATH", "")
 VOTE_MILESTONE_THRESHOLDS = [10, 25, 50, 100, 250, 500]  # §10, read at call time (D4)
 THREAD_PUSH_DEBOUNCE_SECONDS = 900  # §10.1, read at call time (D3)
+PUSH_MAX_RETRIES = int(os.environ.get("PUSH_MAX_RETRIES", "3"))

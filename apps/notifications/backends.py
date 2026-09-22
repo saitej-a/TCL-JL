@@ -31,7 +31,12 @@ class SendResult:
 
     success_count: int
     failure_count: int
-    failed_tokens: tuple[str, ...]  # UnregisteredError / SenderIdMismatchError only
+    failed_tokens: tuple[str, ...] = ()  # UnregisteredError / SenderIdMismatchError only
+    retryable_tokens: tuple[str, ...] = ()
+
+    @property
+    def invalid_tokens(self) -> tuple[str, ...]:
+        return self.failed_tokens
 
 
 class PushBackend(ABC):
@@ -48,6 +53,16 @@ class PushBackend(ABC):
         """Deliver push message to a list of device tokens."""
         raise NotImplementedError
 
+    def send_multicast(
+        self,
+        tokens: Sequence[str],
+        title: str,
+        body: str,
+        data: dict[str, str],
+    ) -> SendResult:
+        """Alias for send() (07 §5.1)."""
+        return self.send(tokens, title, body, data)
+
 
 class RecordingPushBackend(PushBackend):
     """Test double recording all send() invocations in an in-memory list."""
@@ -55,6 +70,13 @@ class RecordingPushBackend(PushBackend):
     def __init__(self, result: SendResult | None = None) -> None:
         self.calls: list[dict[str, Any]] = []
         self._result = result
+
+    def clear(self) -> None:
+        self.calls.clear()
+
+    @property
+    def sent_messages(self) -> list[dict[str, Any]]:
+        return self.calls
 
     def send(
         self,
@@ -176,11 +198,22 @@ class FirebasePushBackend(PushBackend):
             raise
 
 
+_recording_backend_instance: RecordingPushBackend | None = None
+
+
+def get_recording_push_backend() -> RecordingPushBackend:
+    """Return singleton instance of RecordingPushBackend for tests."""
+    global _recording_backend_instance
+    if _recording_backend_instance is None:
+        _recording_backend_instance = RecordingPushBackend()
+    return _recording_backend_instance
+
+
 def get_push_backend() -> PushBackend:
     """Resolve push backend according to settings and environment."""
     backend = getattr(settings, "PUSH_BACKEND", "auto")
     if backend == "recording":
-        return RecordingPushBackend()
+        return get_recording_push_backend()
     if backend == "firebase":
         return FirebasePushBackend()
     if backend == "auto":
@@ -192,5 +225,5 @@ def get_push_backend() -> PushBackend:
             google_creds and os.path.exists(google_creds)
         ):
             return FirebasePushBackend()
-        return RecordingPushBackend()
+        return get_recording_push_backend()
     raise ValueError(f"Unknown PUSH_BACKEND setting: {backend}")

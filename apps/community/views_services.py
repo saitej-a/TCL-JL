@@ -140,11 +140,24 @@ def vote_post(user, post: Post) -> None:
     """
     from django.db import transaction
 
-    try:
-        with transaction.atomic():
-            post.votes.create(user=user)
-    except IntegrityError as exc:
-        raise DuplicateVoteError from exc
+    with transaction.atomic():
+        previous_count = post.votes.count()
+        try:
+            with transaction.atomic():
+                post.votes.create(user=user)
+        except IntegrityError as exc:
+            raise DuplicateVoteError from exc
+
+        current_count = previous_count + 1
+        # Phase 6 hook: milestone notifications (06.2 D4/D10/D11)
+        from apps.notifications.services import maybe_notify_vote_milestone
+
+        maybe_notify_vote_milestone(
+            post,
+            previous_count=previous_count,
+            current_count=current_count,
+            actor=user,
+        )
 
 
 def unvote_post(user, post: Post) -> bool:
