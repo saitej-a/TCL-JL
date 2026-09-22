@@ -1,15 +1,11 @@
 ---
-gsd_state_version: "1.0"
+gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: "7.2"
-current_phase_name: Analytics Endpoints & Redis Caching
-status: executed
-stopped_at: 7.2 planned and executed (6 tasks, 5 commits) — five anonymous endpoints, payload cache + hourly warmup, per-row suppression; 638 tests green, 19/19 live HTTP drill; awaiting verification
-last_updated: "2026-09-22T17:02:00.000Z"
-last_activity: 2026-09-22
-last_activity_desc: 7.2 executed — analytics endpoints, Redis caching and per-row suppression live; both of 7.1's owed decisions delivered
-state_head: 814b9d58acf018267c3a09239d53a34d9ff86048
+status: verifying
+stopped_at: Phase 8.1 context gathered
+last_updated: "2026-09-22T17:38:11.452Z"
+last_activity: 2026-09-22 -- Phase 7.2 planned and executed
 progress:
   total_phases: 10
   completed_phases: 5
@@ -150,8 +146,8 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-09-22T17:02:00.000Z
-Stopped at: 7.2 planned and executed. Five anonymous endpoints (04 §48–§51 + §80), payload-level Redis caching behind the reserved hourly warmup, per-row `<5` suppression, `analytics_reads` throttling and whitelist filter validation are live; every gate green (638 tests, ruff, `makemigrations --check`) and the 19/19 HTTP drill restored the database to 21 candidates / 66 events. Next: `/gsd-ns-workflow verify 7.2`, then Phase 8 (moderation).
-Resume file: .planning/phases/TCS-JL-07.2-analytics-endpoints-and-redis-caching/07.2-SUMMARY.md
+Last session: 2026-09-22T17:38:11.440Z
+Stopped at: Phase 8.1 context gathered
+Resume file: .planning/phases/TCS-JL-08.1-report-model-and-scam-heuristics/08.1-CONTEXT.md
 
 **Still owed elsewhere (unchanged by this session):** 7.1's canonical `VERIFICATION.md` is what unblocks its transition; 6.1/6.2/7.1 UATs remain attestation-only; Phase 5's two HIGH defects and F1's deletion-flow decision are live in the tree.
