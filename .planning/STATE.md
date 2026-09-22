@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: Phase 6.1 context gathered
-last_updated: "2026-09-22T09:14:52.147Z"
-last_activity: "2026-09-22 -- 5.2 executed: 441 tests green, ruff clean, migration drift clean, live HTTP drill 33/33"
+status: executing
+stopped_at: Phase 6.1 executed — plan 06-01 complete, awaiting verification
+last_updated: "2026-09-22T10:34:47.000Z"
+last_activity: 2026-09-22 -- Phase 6.1 executed (06-01 complete)
 progress:
   total_phases: 10
   completed_phases: 5
   total_plans: 27
-  completed_plans: 11
-  percent: 41
+  completed_plans: 12
+  percent: 44
 ---
 
 # Project State
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-09-19)
 
 ## Current Position
 
-Phase: 5 COMPLETE (of 10 — Community Discussions & Forum System); Phases 1-5 COMPLETE, Phase 6 next
-Plan: 05-02 + 05-03 executed 2026-09-22 (one execution unit)
-Status: Phase 5.2 COMPLETE — all roadmap success criteria 1-5 hold (verified in-suite + 33/33 live HTTP drill)
-Last activity: 2026-09-22 -- 5.2 executed: 441 tests green, ruff clean, migration drift clean, live HTTP drill 33/33
+Phase: 6.1 EXECUTED (of 10 — In-App Notifications & FCM Web Push); Phases 1-5 COMPLETE, Phase 6 model layer shipped
+Plan: 06-01 executed 2026-09-22 (5 tasks, one migration, 45 new tests)
+Status: Ready to verify
+Last activity: 2026-09-22 -- Phase 6.1 executed (06-01 complete)
 
-Progress: [████░░░░░░] 41%
+Progress: [████░░░░░░] 44%
 
 ## Performance Metrics
 
@@ -49,7 +49,7 @@ Progress: [████░░░░░░] 41%
 | 3. Candidate Profiles & Public Identity Controls | 2/2 | - | - |
 | 4. Recruitment Timeline Engine | 2/2 | - | - |
 | 5. Community Discussions & Forum System | 3/3 | - | - |
-| 6. In-App Notifications & FCM Web Push System | 0/3 | - | - |
+| 6. In-App Notifications & FCM Web Push System | 1/3 | - | - |
 | 7. Community Analytics & Privacy Engine | 0/2 | - | - |
 | 8. Moderation, Anti-Spam & Administration | 0/3 | - | - |
 | 9. Frontend Single Page Application (React + Tailwind) | 0/4 | - | - |
@@ -57,7 +57,7 @@ Progress: [████░░░░░░] 41%
 
 **Recent Trend:**
 
-- Last 5 plans: 03-02, 04-01, 04-02, 05-01 (green after lint/format fixes; 05-01's 56 tests passed on the first run)
+- Last 5 plans: 04-01, 04-02, 05-01, 05-02+05-03, 06-01 (06-01: 45 new tests, two own-test bugs found and fixed by the live drill, 486-test suite green)
 - Trend: Stable
 
 ## Accumulated Context
@@ -85,13 +85,18 @@ Recent decisions affecting current work:
 - [Phase 5.1 — D3]: One neutral tombstone copy (`This content has been removed.`) covers author- and moderator-deletion alike, because the single `is_deleted` flag cannot distinguish them; originals stay in the row (08 §390) and masking happens only in `tombstones.display_*`.
 - [Phase 5.1 — D4/P1]: Deleted posts leave the feed (03 §28) while tombstoned comments stay in their threads; `Comment.parent` is `SET_NULL` (not CASCADE/PROTECT) so a disappearing parent promotes a reply instead of destroying it, and post hard-deletion is never blocked.
 - [Phase 5.1 — P4]: Integrity guarantees are deliberately unequal and documented as such — duplicate votes are impossible at the database level (`unique_user_post_vote`), while the 1-level reply rule is application-level because PostgreSQL cannot express a cross-row `CHECK`.
+- [Phase 6.1 — D1/D2]: All seven 07 §3.1 notification types ship as a nested model `TextChoices` (not a settings-held list like 5.1 D1) because the values drive code dispatch in 6.2/6.3 — a settings-added type would reach the dispatcher with no handler. The model `TextChoices` is the closed, system-owned vocabulary; only four types have v1 producers and the docstring says so.
+- [Phase 6.1 — D3/D4]: `title`/`message` are **stored snapshots** written at creation, and 6.1 composes/renders nothing — anonymity-safe labels belong to 6.2's `create_notification` service (via 3.2's `AuthorPublicSerializer` semantics), which is what keeps 07 §8's zero-PII push rule achievable at write time.
+- [Phase 6.1 — D5]: `notification_read_state` (`CHECK (NOT is_read OR read_at IS NOT NULL)`) is the project's first `CheckConstraint` and the phase's hard guarantee; it is deliberately one-directional (`read_at` set while unread is legal). `clean()` mirrors it with code `read_state_inconsistent`, and `mark_as_read()` is the single sanctioned pair writer (one UPDATE naming both columns, idempotent).
+- [Phase 6.1 — D6]: `NotificationManager.unread_count_for(user)` ships now — the seam 4.2 D1 promised; the dashboard keeps its explicit `0` placeholder until 6.2 wires the call.
+- [Phase 6.1 — R1/R2/R3/R9]: The plan's pinned index name `idx_notif_recipient_read_created` is 32 chars and Django rejects names over 30, so it shipped as `idx_notif_recip_read_created`; the constraint uses `condition=` (the deprecated `check=` would warn on Django 5.2); `Device.__str__` renders no email/token (03 §8); `auto_now` fields refresh only when named in `update_fields`.
 
 ### Pending Todos
 
 - **Decide F1's disposition** (VERIFICATION.md 4.2): `anonymize_delete_account` does not delete the CandidateProfile or its timeline events, contrary to 06 §4.2 step 4 / §2.7 "Zero Orphaned PII". Either fix the 2.2 deletion service (delete the profile inside the same transaction; the FK cascade removes events) or record an explicit decision to retain anonymized profiles — then either way exclude them from the dashboard cohort (F2).
-- Phase 5.2 (next): reuse `AuthorPublicSerializer` (3.2) as the only community author shape, delegate creation to `community.services.create_post` / `create_comment` so the reply-depth rule stays enforced on the write path, and render bodies through `tombstones.display_body`/`display_title`.
+- Phase 6.2 (next): wire `Notification.objects.unread_count_for(request.user)` into `apps/timeline/services.py:212` (replacing the `0` placeholder), create notifications through a `create_notification` service that composes anonymity-safe labels (D4), keep `fcm_token` `write_only=True`, and make bulk mark-all-read write **both** `is_read` and `read_at` so D5's constraint is satisfied.
 - Phase 5.2 carried decision: 08 §406 renders a deleted post's author as unattributed — the author-nulling rule for deleted posts (and whether a tombstoned comment keeps its handle) is a 5.2 serializer decision.
-- Phase 6/7 wiring: fill `community.unread_notifications` (Notifications model) and extend the dashboard analytics block beyond the profile-derived counts already shipped in 4.2. Phase 7's suppression must apply the cohort floor **per bucket**, not just globally (4.2's residual-risk note).
+- Phase 6/7 wiring: the notifications **seam** exists (`NotificationManager.unread_count_for`, 6.1) but `community.unread_notifications` still returns the 4.2 placeholder until 6.2 calls it; extend the dashboard analytics block beyond the profile-derived counts in Phase 7, applying the cohort floor **per bucket**, not just globally (4.2's residual-risk note).
 - Low-severity polish from 4.2 verification: shared JSON 404 for unresolvable paths (F3), `Allow` header on 405 (F4), whether `WITHDRAWN` should count as profile-completion progress (F5), timeline write throttling if abuse appears (F6).
 
 ### Blockers/Concerns
@@ -105,11 +110,11 @@ Items acknowledged and deferred at milestone close, most recent first:
 | Category | Item | Status | Deferred At | Milestone |
 |----------|------|--------|-------------|-----------|
 | Timeline UI | TIME-04's interactive chronological roadmap with edit/delete controls | Deferred to 9.3 (UI-03); API half shipped in 4.2 | 2026-09-22 | v1.0 |
-| Dashboard data | Real unread-notification count | Placeholder `0` until Phase 6 ships the Notifications model | 2026-09-22 | v1.0 |
+| Dashboard data | Real unread-notification count | Seam shipped in 6.1 (`unread_count_for`); the dashboard keeps its `0` placeholder until 6.2 wires it | 2026-09-22 | v1.0 |
 | Analytics depth | Batch/hiring-type/region breakdowns + `/api/v1/analytics/*` | Deferred to Phase 7 (its suppression rules cover that surface) | 2026-09-22 | v1.0 |
 
 ## Session Continuity
 
-Last session: 2026-09-22T09:14:52.107Z
-Stopped at: Phase 6.1 context gathered
-Resume file: .planning/phases/TCS-JL-06.1-notification-device-models/06.1-CONTEXT.md
+Last session: 2026-09-22T10:34:47.000Z
+Stopped at: Phase 6.1 executed — 06-01 complete (models, one migration, 45 tests, 21/21 live drill checks)
+Resume file: .planning/phases/TCS-JL-06.1-notification-device-models/06.1-SUMMARY.md

@@ -167,7 +167,7 @@ Plans:
   5. Stale tokens are deactivated on `UnregisteredError`; inactive devices older than 30 days are pruned daily.
 **Plans**: 3 plans  
 Plans:
-- [ ] 06-01: `Notification`, `Device`, and `NotificationPreference` models with compound indexes.
+- [x] 06-01: `Notification`, `Device`, and `NotificationPreference` models with compound indexes. *(executed 2026-09-22)*
 - [ ] 06-02: Device registration (write-only token), device revocation, notification list, and mark-read endpoints.
 - [ ] 06-03: Firebase Admin SDK integration, Celery push multicast task, self-action suppression, and service worker push handler.
 

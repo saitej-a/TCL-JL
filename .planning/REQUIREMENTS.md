@@ -44,7 +44,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### In-App & Browser Push Notifications (NOTIF)
 
-- [ ] **NOTIF-01**: Candidates receive in-app notifications with read tracking for comments, replies, upvote milestones, and announcements.
+- [ ] **NOTIF-01**: Candidates receive in-app notifications with read tracking for comments, replies, upvote milestones, and announcements. *(model layer shipped in 6.1 — `Notification`/`Device`/`NotificationPreference` with read tracking, the `notification_read_state` constraint, compound indexes, and the `unread_count_for` seam; creation and the list/mark-read endpoints arrive in 6.2)*
 - [ ] **NOTIF-02**: Candidates can register multiple browser/mobile devices with FCM tokens stored via write-only serializers.
 - [ ] **NOTIF-03**: Celery background tasks dispatch FCM push notifications with exponential backoff and zero PII payloads.
 - [ ] **NOTIF-04**: System suppresses self-action notifications and applies Redis thread push debouncing (15m window).
@@ -126,7 +126,7 @@ Deferred to future post-MVP release.
 | COMM-06 | Phase 5 | Complete — 5.2: staff-only lock/pin (+unlock/unpin additions); locked posts refuse comments |
 | COMM-07 | Phase 5 | Complete — 5.2: AuthorPublicSerializer + HMAC avatar_seed server-side |
 | COMM-08 | Phase 5 | Complete — 5.2: query budgets as tests (feed ≤3, thread ≤5); distinct=True counts |
-| NOTIF-01 | Phase 6 | Pending |
+| NOTIF-01 | Phase 6 | Partial — 6.1: model layer (three models, read-state CheckConstraint, compound indexes, unread-count seam); notification creation + list/mark-read endpoints in 6.2 |
 | NOTIF-02 | Phase 6 | Pending |
 | NOTIF-03 | Phase 6 | Pending |
 | NOTIF-04 | Phase 6 | Pending |
@@ -170,7 +170,7 @@ Phases are decomposed into decimal sub-phases (directories under `.planning/phas
 | 4.2 Timeline API, IDOR Defense & Dashboard | TIME-03, TIME-04, TIME-05 | 04-02 — Complete (2026-09-22): timeline CRUD + 404 IDOR defense + dashboard, 81 new tests |
 | 5.1 Forum Models & Deletion Semantics | COMM-03, COMM-04, COMM-05 | 05-01 — Complete (2026-09-22): Post/Comment/PostVote + soft-deletion semantics, 56 tests |
 | 5.2 Feed, Comments & Voting Endpoints | COMM-01, COMM-02, COMM-06, COMM-07, COMM-08 | 05-02, 05-03 |
-| 6.1 Notification & Device Models | NOTIF-01 | 06-01 |
+| 6.1 Notification & Device Models | NOTIF-01 | 06-01 — Complete (2026-09-22): Notification/Device/NotificationPreference + notification_read_state constraint, 45 new tests |
 | 6.2 Device Registration & FCM Push | NOTIF-02, NOTIF-03, NOTIF-04, NOTIF-05, NOTIF-06 | 06-02, 06-03 |
 | 7.1 Analytics Aggregation & Privacy Suppression | ANAL-03, ANAL-04 | 07-01 |
 | 7.2 Analytics Endpoints & Redis Caching | ANAL-01, ANAL-02, ANAL-05 | 07-02 |
