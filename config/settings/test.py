@@ -29,3 +29,6 @@ CACHES = {
         "LOCATION": "test-cache",
     }
 }
+
+# Phase 6.2 D2: pin recording backend so tests never attempt credential loads
+PUSH_BACKEND = "recording"

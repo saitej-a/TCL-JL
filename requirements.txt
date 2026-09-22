@@ -9,3 +9,6 @@ django-redis==6.0.0
 argon2-cffi==25.1.0
 djangorestframework-simplejwt==5.5.1
 django-cors-headers==4.7.0
+# Push notifications (Phase 6.2 — first new dependency since Phase 1 — accepted transitive weight per 6.2 D1)
+firebase-admin==7.6.0
+

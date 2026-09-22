@@ -279,7 +279,10 @@ REST_FRAMEWORK = {
         "auth_verify_resend": "1/min",
         # Community write scopes (04 §41/§42; plan 05-02 R7)
         "community_writes": "30/min",
-    },  # notifications/device scopes land in Phases 6/8
+        # Notifications & device scopes (Phase 6.2 — 07 §10)
+        "device_registration": "10/hour",
+        "notifications_reads": "60/min",
+    },
 }
 
 # --- Community (Phase 5.2 / plan 05-02) --------------------------------------------
@@ -301,3 +304,9 @@ DEFAULT_FROM_EMAIL = "no-reply@tcsjoiningtracker.local"
 # --- Security headers (baseline; production.py hardens further) ---------------------
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
+
+# --- Notifications & push (Phase 6.2) ------------------------------------------------
+PUSH_BACKEND = os.environ.get("PUSH_BACKEND", "auto")  # firebase | recording | auto (R: D1)
+FIREBASE_CREDENTIALS_PATH = os.environ.get("FIREBASE_CREDENTIALS_PATH", "")
+VOTE_MILESTONE_THRESHOLDS = [10, 25, 50, 100, 250, 500]  # §10, read at call time (D4)
+THREAD_PUSH_DEBOUNCE_SECONDS = 900  # §10.1, read at call time (D3)
