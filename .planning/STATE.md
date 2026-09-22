@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Phase 5 executed (5.2 on 2026-09-22: feed/comments/votes/lock-pin endpoints, 66 tests, 33/33 live HTTP checks); Phase 5 COMPLETE (2/2 sub-phases); next: /discuss 6.1
-last_updated: "2026-09-22T02:00:00.000Z"
-last_activity: 2026-09-22 -- 5.2 executed: community endpoints (feed, thread, votes, moderation), 441 tests green, 33/33 live HTTP drill
+status: verifying
+stopped_at: Phase 6.1 context gathered
+last_updated: "2026-09-22T09:14:52.147Z"
+last_activity: "2026-09-22 -- 5.2 executed: 441 tests green, ruff clean, migration drift clean, live HTTP drill 33/33"
 progress:
   total_phases: 10
   completed_phases: 5
@@ -110,6 +110,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-09-22T02:00:00.000Z
-Stopped at: Phase 5.2 executed — Phase 5 COMPLETE (COMM-01..08 all shipped); Phase 6 (Notifications & FCM) next
-Resume file: .planning/ROADMAP.md (Phase 6 section) — start with /gsd-ns-workflow discuss 6.1
+Last session: 2026-09-22T09:14:52.107Z
+Stopped at: Phase 6.1 context gathered
+Resume file: .planning/phases/TCS-JL-06.1-notification-device-models/06.1-CONTEXT.md
