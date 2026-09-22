@@ -1,4 +1,4 @@
-"""Shared pytest fixtures for apps/analytics tests (Phase 7.1)."""
+"""Shared pytest fixtures for apps/analytics tests (Phase 7.1; 7.2 adds HTTP)."""
 
 from __future__ import annotations
 
@@ -7,10 +7,31 @@ from datetime import date
 from typing import Any
 
 import pytest
+from django.core.cache import cache
+from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.candidates.models import CandidateProfile
 from apps.timeline.models import TimelineEvent
+
+
+@pytest.fixture(autouse=True)
+def clear_analytics_cache():
+    """Keep the payload cache and throttle buckets out of each other's tests.
+
+    `LocMemCache` lives for the whole pytest process (7.2 caches payloads), so
+    without this a cached payload or a spent throttle bucket would leak from one
+    test into the next.
+    """
+    cache.clear()
+    yield
+    cache.clear()
+
+
+@pytest.fixture
+def api_client() -> APIClient:
+    """Anonymous DRF client — every analytics endpoint is public (04 §6)."""
+    return APIClient()
 
 
 @pytest.fixture
