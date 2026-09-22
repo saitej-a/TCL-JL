@@ -160,6 +160,38 @@ class _Locked(APIException):
         )
 
 
+class _ScamPatternDetected(APIException):
+    """Pre-publication scam block (8.1 D1/D2 — hard refuse, never auto-publish).
+
+    The message is heuristics.CATEGORY_MESSAGE: it names the violation category
+    so honest users can fix false positives, and NEVER contains the matched
+    regex (T-08.1-03: the pattern text is the evasion recipe).
+    """
+
+    status_code = status.HTTP_400_BAD_REQUEST
+
+    def __init__(self):
+        from apps.moderation.heuristics import CATEGORY_MESSAGE
+
+        super().__init__({"error": {"code": "scam_pattern_detected", "message": CATEGORY_MESSAGE}})
+
+
+class _DuplicatePost(APIException):
+    """60-minute duplicate-post debounce hit (T8.5 + 8.1 D6)."""
+
+    status_code = status.HTTP_400_BAD_REQUEST
+
+    def __init__(self):
+        super().__init__(
+            {
+                "error": {
+                    "code": "duplicate_post",
+                    "message": "You already posted this content recently.",
+                }
+            }
+        )
+
+
 class CommunityErrorMixin(SpecErrorMixin):
     """Translate service/Django exceptions into the project envelope, then let
     the accounts handler render them (3.2/4.2 precedent — one body style)."""
@@ -223,6 +255,16 @@ def _post_category_keys() -> set[str]:
     return {key for key, _label in post_categories()}
 
 
+def _scan_or_raise(title: str, body: str) -> None:
+    """8.1 D1/D4: raise 400 scam_pattern_detected when the text matches a scam
+    pattern. Called on all four write surfaces (post create/edit, comment
+    create/edit); comments pass title=""."""
+    from apps.moderation.heuristics import evaluate_content_safety
+
+    if evaluate_content_safety(title, body)["flagged"]:
+        raise _ScamPatternDetected()
+
+
 class PostListCreateView(CommunityErrorMixin, ListAPIView):
     """`GET /api/v1/community/posts/` — the feed (04 §31-§35, T5.4-T5.6).
 
@@ -267,10 +309,22 @@ class PostListCreateView(CommunityErrorMixin, ListAPIView):
         return super().list(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
-        """`POST /api/v1/community/posts/` (04 §32, T5.7)."""
+        """`POST /api/v1/community/posts/` (04 §32, T5.7).
+
+        Phase 8.1 guard clauses BEFORE the write: scam-pattern scan (D1/D4) and
+        the 60-minute duplicate debounce (D6 — title + body hashes, posts only).
+        """
         serializer = PostWriteSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        title = serializer.validated_data["title"]
+        body = serializer.validated_data["body"]
+        _scan_or_raise(title, body)
+        from apps.moderation.debounce import check_duplicate_post, register_post_hashes
+
+        if check_duplicate_post(request.user.id, title, body):
+            raise _DuplicatePost()
         post = create_post(request.user, **serializer.validated_data)
+        register_post_hashes(request.user.id, title, body)
         return Response(
             PostCardSerializer(_with_counts(post, request.user), context={"request": request}).data,
             status=status.HTTP_201_CREATED,
@@ -301,6 +355,9 @@ class PostDetailView(CommunityErrorMixin, APIView):
         for field in ("title", "body", "category"):
             if field in serializer.validated_data:
                 setattr(post, field, serializer.validated_data[field])
+        # 8.1 D5: edits are scanned on the MERGED state — stored values overlaid
+        # with the partial payload — so a clean post cannot be edited into a scam.
+        _scan_or_raise(post.title, post.body)
         post.full_clean()
         post.save()
         return Response(
@@ -379,6 +436,8 @@ class CommentListCreateView(CommunityErrorMixin, APIView):
             raise _Locked()
         serializer = CommentWriteSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        # 8.1 D4: comments are scanned on create (never debounced, D6).
+        _scan_or_raise("", serializer.validated_data["body"])
         parent = _resolve_parent(post, serializer.validated_data.get("parent_id"))
         comment = create_comment(
             post,
@@ -425,6 +484,8 @@ class CommentDetailView(CommunityErrorMixin, APIView):
         serializer = CommentWriteSerializer(comment, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         comment.body = serializer.validated_data["body"]
+        # 8.1 D5: comment edits scanned on the merged state, before save.
+        _scan_or_raise("", comment.body)
         comment.full_clean()
         comment.save(update_fields=["body", "updated_at"])
         return Response(CommentSerializer(comment, context={"request": request}).data)

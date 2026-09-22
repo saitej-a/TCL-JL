@@ -150,6 +150,12 @@ ANALYTICS_MIN_COHORT_SIZE = 5
 # superseded in the 7.2 SUMMARY. Read at call time (the BATCH_YEARS precedent).
 ANALYTICS_CACHE_TTL = 7200  # 2 hours
 
+# --- Moderation (Phase 8.1) ------------------------------------------------------
+# Duplicate-post debounce window (08 §8.2): an MD5 of (author_id, title) — plus
+# a body hash per 8.1 D6 — lives in the cache for this many seconds; a repeat
+# within the window returns 400 duplicate_post. Read at call time.
+DUPLICATE_POST_WINDOW = 3600  # 60 minutes
+
 # D3 future-date horizon for timeline events: event_date may not exceed
 # today + this many days (730 ≈ 24 months). JOINING_DATE is legitimately future;
 # JOINING_LETTER is separately restricted to present-or-past in the serializer.
