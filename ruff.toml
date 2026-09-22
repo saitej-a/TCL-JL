@@ -2,7 +2,11 @@
 target-version = "py311"
 line-length = 100
 # Django migrations are machine-generated; linting/formatting them is churn.
-extend-exclude = ["**/migrations"]
+# `.planning/` holds GSD workflow artifacts (CONTEXT/PLAN/VERIFICATION docs plus
+# the per-phase live-HTTP drill/probe scripts run via `manage.py shell`). They are
+# throwaway verification harnesses, not shipped application code, so linting them
+# (S310 on a localhost urlopen, E501 on assertion detail strings) is noise.
+extend-exclude = ["**/migrations", ".planning"]
 
 [lint]
 select = [
