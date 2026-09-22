@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Phase 8.1 executed (plans 08.1-01 + 08.1-02) — awaiting UAT verification
-last_updated: "2026-09-22T18:55:00.000Z"
-last_activity: 2026-09-22 -- Phase 8.1 executed: apps/moderation (Report + XOR + dedup + throttled endpoint), scam scanner on all four write surfaces, duplicate-post debounce; 694 tests green
+status: complete
+stopped_at: Phase 7.2 and 8.1 UAT verified complete
+last_updated: "2026-09-23T00:25:00.000Z"
+last_activity: 2026-09-23 -- Phase 7.2 and Phase 8.1 UAT complete (7.2: 7 passed; 8.1: 5 passed)
 progress:
   total_phases: 10
   completed_phases: 5
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-19)
 
 **Core value:** Provide anxious candidates with complete clarity on their recruitment progress and community benchmarks without requiring them to expose their real identity or personal credentials.
-**Current focus:** Phase 7 — Community Analytics & Privacy Engine. Both plans (7.1 service layer, 7.2 endpoints + Redis caching) are executed; **Phase 7 now awaits verification** (`/gsd-ns-workflow verify 7.2`).
+**Current focus:** Phase 8 — Moderation, Anti-Spam & Administration. Phase 8.1 (Report model & scam heuristics) executed and UAT verified; **Phase 8.2 (Admin triage & ban workflow) is next**.
 
 ## Current Position
 
-Phase: 7.2 EXECUTED (of 10 — Community Analytics & Privacy Engine); Phases 1-4 complete (4.2 independently verified PASS), **Phase 5 independently verified FAIL with two HIGH defects still live**, 6.1/6.2/7.1/7.2 executed but unverified
-Plan: 07-01 executed 2026-09-22 (22 tests, 16/16 live drill); 07-02 executed 2026-09-22 (6 tasks, 32 new tests, 19/19 live HTTP drill, zero models/migrations)
-Status: Ready to execute
-Last activity: 2026-09-22 -- Phase 8.1 planning complete
+Phase: 8.1 UAT COMPLETE; Phase 7.2 UAT COMPLETE; Phase 8.2 next
+Plan: 08.1-01 executed (25 tests); 08.1-02 executed (31 tests); full suite 694 tests green
+Status: Ready for Phase 8.2
+Last activity: 2026-09-23 -- Phase 7.2 and 8.1 UAT verified complete
 
 Progress: [████░░░░░░] 48%
 
