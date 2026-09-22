@@ -194,7 +194,7 @@ Plans:
   4. Overview and batch statistics are cached in Redis with hourly Celery Beat warmup routines.
 **Plans**: 2 plans  
 Plans:
-- [ ] 07-01: Analytics aggregation service, wait-time calculation engine, and `<5` candidate privacy suppression threshold.
+- [x] 07-01: Analytics aggregation service, wait-time calculation engine, and `<5` candidate privacy suppression threshold. *(executed 2026-09-22)*
 - [ ] 07-02: Overview, batch, stream, regional analytics endpoints, Redis caching layer, and public landing stats endpoint.
 
 **Sub-phases** (planning & execution units; dirs under `.planning/phases/`):
@@ -316,7 +316,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 4. Recruitment Timeline Engine | 2/2 | Complete | 2026-09-22 |
 | 5. Community Discussions & Forum System | 1/3 | In progress | - |
 | 6. In-App Notifications & FCM Web Push System | 0/3 | Not started | - |
-| 7. Community Analytics & Privacy Engine | 0/2 | Not started | - |
+| 7. Community Analytics & Privacy Engine | 1/2 | In progress | - |
 | 8. Moderation, Anti-Spam & Administration | 0/3 | Not started | - |
 | 9. Frontend Single Page Application (React + Tailwind) | 0/4 | Not started | - |
 | 10. Security Audits, E2E Testing, Seed Data & Launch Readiness | 0/2 | Not started | - |

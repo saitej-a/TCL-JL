@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 6.2 planned (06.2-PLAN.md written; 6.1 UAT still paused at test 1 of 7)
-last_updated: "2026-09-22T12:30:00.000Z"
-last_activity: 2026-09-22 -- Phase 6.2 planned
+stopped_at: Phase 7.1 executed — plan 07-01 complete, awaiting verification (6.1 UAT still paused at test 1 of 7)
+last_updated: "2026-09-22T16:01:06.000Z"
+last_activity: 2026-09-22 -- Phase 7.1 executed (07-01 complete)
 progress:
   total_phases: 10
   completed_phases: 5
   total_plans: 27
-  completed_plans: 12
-  percent: 44
+  completed_plans: 13
+  percent: 48
 ---
 
 # Project State
@@ -21,22 +21,22 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-19)
 
 **Core value:** Provide anxious candidates with complete clarity on their recruitment progress and community benchmarks without requiring them to expose their real identity or personal credentials.
-**Current focus:** Phase 5 COMPLETE (all COMM requirements shipped). Next: Phase 6 — In-App Notifications & FCM Web Push.
+**Current focus:** Phase 7 — Community Analytics & Privacy Engine. 7.1 (read-only aggregation + wait-time + `<5` suppression service layer) is executed and awaiting verification; 7.2 (endpoints, `COMMUNITY_REPORTED` labeling, Redis caching) is next.
 
 ## Current Position
 
-Phase: 6.2 PLANNED (of 10 — In-App Notifications & FCM Web Push); Phases 1-5 COMPLETE, 6.1 executed, 6.1 UAT paused
-Plan: 06-01 executed 2026-09-22 (5 tasks, one migration, 45 new tests); 06.2-PLAN.md written — one execution unit covering 06-02+06-03, 6 tasks, ~95 tests budgeted, R1–R10 planner resolutions logged
-Status: 6.1 awaiting a UAT response (test 1 of 7 presented); 6.2 ready to execute
-Last activity: 2026-09-22 -- Phase 6.2 planned
+Phase: 7.1 EXECUTED (of 10 — Community Analytics & Privacy Engine); Phases 1-6 COMPLETE, 7.1 service layer shipped
+Plan: 07-01 executed 2026-09-22 (4 tasks, zero models, zero migrations, 22 tests, 16/16 live drill checks)
+Status: Ready to verify
+Last activity: 2026-09-22 -- Phase 7.1 executed (07-01 complete)
 
-Progress: [████░░░░░░] 44%
+Progress: [████░░░░░░] 48%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 8
+- Total plans completed: 13
 - Average duration: — (per-plan timing not yet instrumented)
 - Total execution time: —
 
@@ -50,14 +50,14 @@ Progress: [████░░░░░░] 44%
 | 4. Recruitment Timeline Engine | 2/2 | - | - |
 | 5. Community Discussions & Forum System | 3/3 | - | - |
 | 6. In-App Notifications & FCM Web Push System | 1/3 | - | - |
-| 7. Community Analytics & Privacy Engine | 0/2 | - | - |
+| 7. Community Analytics & Privacy Engine | 1/2 | - | - |
 | 8. Moderation, Anti-Spam & Administration | 0/3 | - | - |
 | 9. Frontend Single Page Application (React + Tailwind) | 0/4 | - | - |
 | 10. Security Audits, E2E Testing, Seed Data & Launch Readiness | 0/2 | - | - |
 
 **Recent Trend:**
 
-- Last 5 plans: 04-01, 04-02, 05-01, 05-02+05-03, 06-01 (06-01: 45 new tests, two own-test bugs found and fixed by the live drill, 486-test suite green)
+- Last 5 plans: 05-01, 05-02+05-03, 06-01, 06-02, 07-01 (07-01: 22 new tests, one own-test bug found and fixed — a hand-built `date(2026, 1, 1 + 50)` overflowed January and only failed at 40+ day waits — 606-test suite green, zero migration drift, ruff clean, 16/16 live drill checks)
 - Trend: Stable
 
 ## Accumulated Context
@@ -95,19 +95,26 @@ Recent decisions affecting current work:
 - [Phase 6.2 — D13/D14]: 6.2 adds `GET|PATCH /api/v1/notifications/preferences/` (07 §11 omits it but NOTIF-06 requires it), and the flags gate the push only — all seven types mapped, with `MODERATION`/`SYSTEM` under `push_enabled` alone.
 - [Phase 6.2 — D15/D16]: announcements are deferred wholesale to Phase 8, so only three types have live producers at 6.2's end (correcting 6.1 D1's "four"); the service worker is deferred to 9.4 with the push payload contract pinned by tests instead.
 - [Phase 6.1 — R1/R2/R3/R9]: The plan's pinned index name `idx_notif_recipient_read_created` is 32 chars and Django rejects names over 30, so it shipped as `idx_notif_recip_read_created`; the constraint uses `condition=` (the deprecated `check=` would warn on Django 5.2); `Device.__str__` renders no email/token (03 §8); `auto_now` fields refresh only when named in `update_fields`.
+- [Phase 7.1 — D1]: The wait-time baseline is the OFFER_LETTER event, then the INTERVIEW event, then `CandidateProfile.offer_letter_date`, then `interview_date`, and the endpoint is the JOINING_LETTER event; per candidate the *earliest* occurrence of each milestone wins, and a candidate whose JL precedes its baseline is dropped rather than clamped (a negative interval is corrupted data, not a negative wait). This is deliberately narrower than ANAL-03's literal "survey submission" baseline — recorded as an open divergence, not silently resolved.
+- [Phase 7.1 — D2]: Suppression is **full-cohort** and keyed on `settings.ANALYTICS_MIN_COHORT_SIZE` (5): a filtered slice below the floor returns only `data_source`/`suppressed`/`message`/`disclaimer` — no counts and no zeroed or partial rows, because a zeroed bucket still discloses that the bucket exists. The floor is applied to the **slice total**, so a single result row inside a large slice can still report a count below 5 (per-bucket floors stay the open 4.2 residual-risk item).
+- [Phase 7.1 — D3]: `apps/analytics` is enforced read-only by `test_phase_boundary.py` rather than by convention — no `models.py`, no `migrations/`, no `views.py`/`urls.py`/`serializers.py`, no `tasks.py`, and no `django.core.cache` import, plus a check that the app config registers zero models. 7.2 cannot grow an endpoint or a cache without failing that test and updating it deliberately.
+- [Phase 7.1 — D4]: Every payload carries `data_source: "COMMUNITY_REPORTED"` **and** the non-affiliation disclaimer — including suppressed payloads, which 04 §53's documented suppression shape omits. The extra field is additive to the spec so a UI can render the disclaimer from any analytics response without a second code path.
+- [Phase 7.1 — R1/R2]: The aggregations are per-bucket ORM walks (one `values("batch").annotate(Count)` then one status-count query per bucket) rather than a single `GROUP BY (bucket, status)`, so each call costs O(buckets) queries; correct and readable at MVP scale, and 7.2's Redis warmup is what makes it cheap. The plan's unused `Avg`/`Max`/`Min`/`Q`/`Decimal` imports were dropped, and `DISCLAIMER_TEXT` was wrapped to satisfy the 100-char E501 limit.
 
 ### Pending Todos
 
 - **Resume the 6.1 UAT** (`.planning/phases/TCS-JL-06.1-notification-device-models/06.1-UAT.md`, status `testing`): test 1 of 7 (cold start smoke test) was presented with evidence and is awaiting `pass` or an issue description. `audit-open` reports no other open items.
 - **Decide F1's disposition** (VERIFICATION.md 4.2): `anonymize_delete_account` does not delete the CandidateProfile or its timeline events, contrary to 06 §4.2 step 4 / §2.7 "Zero Orphaned PII". Either fix the 2.2 deletion service (delete the profile inside the same transaction; the FK cascade removes events) or record an explicit decision to retain anonymized profiles — then either way exclude them from the dashboard cohort (F2).
-- Phase 6.2 (planned — ready to execute): `06.2-PLAN.md` turns the 16 CONTEXT decisions into 6 tasks; the executor must honour the seam wiring (`unread_count_for` into `apps/timeline/services.py:212`), anonymity-safe composition in `create_notification`, `fcm_token` `write_only=True`, the paired `is_read`/`read_at` write in mark-all-read, and the exact task names matching the reserved CELERY_TASK_ROUTES keys.
+- **Decide ANAL-03's true wait-time baseline** (7.1 finding): the requirement says "between survey submission and joining letter issuance", but the locked 7.1 D1 chain starts at OFFER_LETTER (INTERVIEW-event and profile-date fallbacks) and never reads a READINESS_SURVEY event. Either record that the offer-letter baseline is the intended product meaning, or add the survey event as a lowest-priority fallback in 7.2 — do not leave the requirement text and the code disagreeing at verification time.
+- Phase 7.2 (next): expose the 7.1 service layer as `GET /api/v1/analytics/overview|batches|hiring-types|regions/` (04 §48-51 shapes already match the service payloads), add `generated_at` and the §52 timeline analytics helper, wrap the helpers in the Redis caching layer with the hourly Celery Beat warmup, and keep every response attributed (`COMMUNITY_REPORTED` + disclaimer).
 - Phase 5.2 carried decision: 08 §406 renders a deleted post's author as unattributed — the author-nulling rule for deleted posts (and whether a tombstoned comment keeps its handle) is a 5.2 serializer decision.
-- Phase 6/7 wiring: the notifications **seam** exists (`NotificationManager.unread_count_for`, 6.1) but `community.unread_notifications` still returns the 4.2 placeholder until 6.2 calls it; extend the dashboard analytics block beyond the profile-derived counts in Phase 7, applying the cohort floor **per bucket**, not just globally (4.2's residual-risk note).
+- Phase 7 wiring: 7.1 ships the cohort floor on the **slice total** only, so the 4.2 residual-risk request for a **per-bucket** floor is still open — decide it before 7.2 puts these payloads behind a public endpoint (see Blockers/Concerns). The dashboard's own analytics block still needs 4.2's profile-derived counts extended to the 7.1 helpers.
 - Low-severity polish from 4.2 verification: shared JSON 404 for unresolvable paths (F3), `Allow` header on 405 (F4), whether `WITHDRAWN` should count as profile-completion progress (F5), timeline write throttling if abuse appears (F6).
 
 ### Blockers/Concerns
 
-- **F1 (HIGH, pre-existing in Phase 2.2, surfaced by 4.2 verification):** deleted candidates retain their profile row (with `display_name`, `batch`, `region`, `current_status`) and all private timeline events. Not a 4.2 regression — 4.1/4.2 assumed the deletion flow was implemented. Blocks any milestone claim of 06 §4.2 compliance until decided.
+- **F1 (HIGH, pre-existing in Phase 2.2, surfaced by 4.2 verification):** deleted candidates retain their profile row (with `display_name`, `batch`, `region`, `current_status`) and all private timeline events. Not a 4.2 regression — 4.1/4.2 assumed the deletion flow was implemented. Blocks any milestone claim of 06 §4.2 compliance until decided. 7.1 inherits it directly: the aggregation cohorts count those retained profiles, so the analytics themselves now include anonymized-but-present candidates (the 4.2 F2 exclusion question is still unanswered).
+- **Per-bucket suppression gap (MEDIUM, new in 7.1):** the `<5` floor is applied to the slice total, so a result row inside a large slice may itself report fewer than 5 candidates (e.g. a batch row of 3 inside a 200-candidate slice), which is the differential-inference vector 4.2's residual-risk note named. Either apply the floor to each result row in 7.2 or record an explicit decision that coarse batch/stream/region buckets (never an individual candidate) make per-row floors unnecessary.
 
 ## Deferred Items
 
@@ -117,12 +124,12 @@ Items acknowledged and deferred at milestone close, most recent first:
 |----------|------|--------|-------------|-----------|
 | Timeline UI | TIME-04's interactive chronological roadmap with edit/delete controls | Deferred to 9.3 (UI-03); API half shipped in 4.2 | 2026-09-22 | v1.0 |
 | Dashboard data | Real unread-notification count | Seam shipped in 6.1 (`unread_count_for`); the dashboard keeps its `0` placeholder until 6.2 wires it | 2026-09-22 | v1.0 |
-| Analytics depth | Batch/hiring-type/region breakdowns + `/api/v1/analytics/*` | Deferred to Phase 7 (its suppression rules cover that surface) | 2026-09-22 | v1.0 |
+| Analytics depth | Batch/hiring-type/region breakdowns + `/api/v1/analytics/*` | Service layer shipped in 7.1 (overview/batch/stream/region helpers + wait-time engine + `<5` suppression); the `/api/v1/analytics/*` endpoints and Redis caching carry to 7.2 | 2026-09-22 | v1.0 |
 | Announcements | `Announcement` model, broadcast task, `notify_on_announcements` verification | Deferred from 6.2 to Phase 8 (T8.6) by D15; the reserved task route stays inert | 2026-09-22 | v1.0 |
 | Push frontend | `firebase-messaging-sw.js` + soft-primer UX (T6.12) | Deferred from 6.2 to Phase 9.4 by D16; the payload contract is pinned by tests now | 2026-09-22 | v1.0 |
 
 ## Session Continuity
 
-Last session: 2026-09-22T12:30:00.000Z
-Stopped at: Phase 6.2 planned — 06.2-PLAN.md written (6 tasks, R1–R10 resolutions, ~95-test budget); 6.1 UAT still paused at test 1 of 7
-Resume file: .planning/phases/TCS-JL-06.2-device-registration-fcm-push/06.2-PLAN.md
+Last session: 2026-09-22T16:01:06.000Z
+Stopped at: Phase 7.1 executed — 07-01 complete (read-only `apps/analytics` service layer, 22 tests, 16/16 live drill checks, 606-test suite green, zero migration drift, ruff clean); awaiting verification. 6.1 UAT still paused at test 1 of 7.
+Resume file: .planning/phases/TCS-JL-07.1-analytics-aggregation-and-privacy-suppression/07.1-SUMMARY.md

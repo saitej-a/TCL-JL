@@ -55,8 +55,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [ ] **ANAL-01**: Candidates can view aggregated community benchmarks (total tracked, waiting for JL, received JL, joined).
 - [ ] **ANAL-02**: Candidates can filter analytics by batch, hiring stream, and region.
-- [ ] **ANAL-03**: System calculates average wait times (in days) between survey submission and joining letter issuance.
-- [ ] **ANAL-04**: System strictly suppresses cohort breakdowns with fewer than 5 candidates to protect candidate anonymity.
+- [ ] **ANAL-03**: System calculates average wait times (in days) between survey submission and joining letter issuance. *(wait-time engine shipped in 7.1 — OFFER_LETTER → JOINING_LETTER with INTERVIEW-event and profile-date fallbacks, mean/median/min/max and a `<5` sample floor; the JSON endpoint and 7.1's OFFER-baseline divergence from this requirement's literal "survey submission" baseline are both open — see 7.2 and the 7.1 SUMMARY findings)*
+- [ ] **ANAL-04**: System strictly suppresses cohort breakdowns with fewer than 5 candidates to protect candidate anonymity. *(suppression rule shipped in 7.1 — `check_privacy_suppression` gates all four aggregation helpers and the wait-time sample, and every payload carries `COMMUNITY_REPORTED` + the non-affiliation disclaimer; endpoint exposure arrives in 7.2)*
 - [ ] **ANAL-05**: All analytics responses are labeled as COMMUNITY_REPORTED and cached in Redis with hourly warmup tasks.
 
 ### Moderation, Safety & Administration (MOD)
@@ -134,8 +134,8 @@ Deferred to future post-MVP release.
 | NOTIF-06 | Phase 6 | Pending |
 | ANAL-01 | Phase 7 | Pending |
 | ANAL-02 | Phase 7 | Pending |
-| ANAL-03 | Phase 7 | Pending |
-| ANAL-04 | Phase 7 | Pending |
+| ANAL-03 | Phase 7 | Partial — 7.1: wait-time engine in `apps/analytics/services.py` (OFFER→JL primary, INTERVIEW-event then profile-date fallbacks, mean/median/min/max, negative intervals excluded, `<5` sample floor). Open: the requirement's literal baseline is readiness-survey submission, which D1's locked chain does not include — flagged in 7.1-SUMMARY.md for the parent-phase verification |
+| ANAL-04 | Phase 7 | Complete (service layer) — 7.1: `<5` cohort suppression enforced by `check_privacy_suppression` on overview, batch, hiring-type, region and wait-time outputs, with full-cohort suppression (no partial sub-breakdowns) and `COMMUNITY_REPORTED` + disclaimer on every payload; endpoint exposure in 7.2 |
 | ANAL-05 | Phase 7 | Pending |
 | MOD-01 | Phase 8 | Pending |
 | MOD-02 | Phase 8 | Pending |
@@ -172,7 +172,7 @@ Phases are decomposed into decimal sub-phases (directories under `.planning/phas
 | 5.2 Feed, Comments & Voting Endpoints | COMM-01, COMM-02, COMM-06, COMM-07, COMM-08 | 05-02, 05-03 |
 | 6.1 Notification & Device Models | NOTIF-01 | 06-01 — Complete (2026-09-22): Notification/Device/NotificationPreference + notification_read_state constraint, 45 new tests |
 | 6.2 Device Registration & FCM Push | NOTIF-02, NOTIF-03, NOTIF-04, NOTIF-05, NOTIF-06 | 06-02, 06-03 |
-| 7.1 Analytics Aggregation & Privacy Suppression | ANAL-03, ANAL-04 | 07-01 |
+| 7.1 Analytics Aggregation & Privacy Suppression | ANAL-03, ANAL-04 | 07-01 — Complete (2026-09-22): `apps/analytics` service layer (read-only, zero models/migrations) + cohort aggregation, wait-time engine, `<5` suppression, 22 tests + 16/16 live drill |
 | 7.2 Analytics Endpoints & Redis Caching | ANAL-01, ANAL-02, ANAL-05 | 07-02 |
 | 8.1 Report Model & Scam Heuristics | MOD-01, MOD-02, MOD-03, MOD-04 | 08-01, 08-02 |
 | 8.2 Admin Triage & Ban Workflow | MOD-05, MOD-06 | 08-03 |
@@ -187,4 +187,4 @@ Note: UI-01 (responsive SPA) spans sub-phases 9.1–9.4; foundation ownership in
 
 ---
 *Requirements defined: 2026-09-19*  
-*Last updated: 2026-09-20 after sub-phase decomposition*
+*Last updated: 2026-09-22 after 7.1 (analytics scoring + privacy suppression service layer) execution*
