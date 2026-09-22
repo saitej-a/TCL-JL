@@ -243,12 +243,12 @@ class NotificationPreferenceView(NotificationErrorMixin, APIView):
     permission_classes = [IsAuthenticated, IsActive, IsVerified]
 
     def get(self, request):
-        pref = NotificationPreference.objects.get_or_create_for(request.user)
+        pref, _ = NotificationPreference.get_or_create_for(request.user)
         serializer = NotificationPreferenceSerializer(pref)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def patch(self, request):
-        pref = NotificationPreference.objects.get_or_create_for(request.user)
+        pref, _ = NotificationPreference.get_or_create_for(request.user)
         serializer = NotificationPreferenceSerializer(
             pref,
             data=request.data,

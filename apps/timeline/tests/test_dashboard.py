@@ -15,6 +15,7 @@ import pytest
 from django.test import override_settings
 
 from apps.candidates.models import CandidateProfile
+from apps.notifications.models import Notification
 
 pytestmark = pytest.mark.django_db
 
@@ -75,11 +76,30 @@ def test_latest_event_carries_no_private_notes(make_user, make_profile, make_eve
     assert set(latest) == {"event_type", "event_date"}
 
 
-def test_unread_notifications_is_an_explicit_placeholder(make_user, make_profile, auth_api):
-    """D1: the key exists now, Phase 6 fills it."""
-    profile = make_profile(user=make_user())
+def test_unread_notifications_is_the_real_count(make_user, make_profile, auth_api):
+    """4.2 D1 debt paid in 6.2: dashboard returns the live unread count."""
+    user = make_user()
+    profile = make_profile(user=user)
+    client = auth_api(profile.user)
 
-    assert auth_api(profile.user).get(URL).json()["community"]["unread_notifications"] == 0
+    # 0 initially
+    assert client.get(URL).json()["community"]["unread_notifications"] == 0
+
+    # 3 unread notifications
+    for idx in range(3):
+        Notification.objects.create(
+            recipient=user,
+            type=Notification.NotificationType.SYSTEM,
+            title=f"Notification {idx}",
+            message="Message content",
+        )
+    assert client.get(URL).json()["community"]["unread_notifications"] == 3
+
+    # Mark all read -> drops to 0
+    from django.utils import timezone
+
+    Notification.objects.filter(recipient=user).update(is_read=True, read_at=timezone.now())
+    assert client.get(URL).json()["community"]["unread_notifications"] == 0
 
 
 def test_community_data_is_labeled(make_user, make_profile, auth_api):

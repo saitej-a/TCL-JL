@@ -23,6 +23,7 @@ from apps.candidates.services import (
     compute_profile_completion,
     transition_status,
 )
+from apps.notifications.models import Notification
 from apps.timeline.models import TimelineEvent
 
 S = CandidateProfile.Status
@@ -182,8 +183,8 @@ def build_dashboard_payload(profile: CandidateProfile) -> dict:
     never churns; the two blocks whose data sources arrive later fill values,
     not keys:
 
-    * ``community.unread_notifications`` — hardcoded ``0`` until Phase 6 ships
-      the Notifications model. Documented placeholder, not a silent stub.
+    * ``community.unread_notifications`` — computed from
+      ``Notification.objects.unread_count_for(profile.user)`` (wired in Phase 6.2).
     * ``analytics`` — computed **for real** today from candidate profiles
       (D1), community-labeled, and suppressed below
       ``settings.ANALYTICS_MIN_COHORT_SIZE`` (04 §53, D2).
@@ -209,7 +210,9 @@ def build_dashboard_payload(profile: CandidateProfile) -> dict:
                 "event_date": latest.event_date.isoformat(),
             }
         },
-        "community": {"unread_notifications": 0},  # wired in Phase 6
+        "community": {
+            "unread_notifications": Notification.objects.unread_count_for(profile.user),
+        },
         "analytics": _analytics_block(),
     }
     return payload

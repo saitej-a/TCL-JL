@@ -73,12 +73,8 @@ class DeviceSerializer(serializers.ModelSerializer):
 class NotificationSerializer(serializers.ModelSerializer):
     """Read serializer for in-app notifications (07 §11.1)."""
 
-    post_id = serializers.UUIDField(source="post_id", allow_null=True, read_only=True)
-    comment_id = serializers.UUIDField(
-        source="comment_id",
-        allow_null=True,
-        read_only=True,
-    )
+    post_id = serializers.UUIDField(allow_null=True, read_only=True)
+    comment_id = serializers.UUIDField(allow_null=True, read_only=True)
 
     class Meta:
         model = Notification
@@ -99,21 +95,21 @@ class NotificationSerializer(serializers.ModelSerializer):
 class NotificationPreferenceSerializer(serializers.ModelSerializer):
     """Serializer for user notification and push preferences (07 §8, §11.7)."""
 
-    notify_on_comments = serializers.BooleanField(required=False)
-    notify_on_replies = serializers.BooleanField(required=False)
-    notify_on_milestones = serializers.BooleanField(required=False)
+    notify_on_comment = serializers.BooleanField(required=False)
+    notify_on_reply = serializers.BooleanField(required=False)
+    notify_on_vote_milestone = serializers.BooleanField(required=False)
     notify_on_announcements = serializers.BooleanField(required=False)
-    notify_on_timeline = serializers.BooleanField(required=False)
+    notify_timeline_reminders = serializers.BooleanField(required=False)
     push_enabled = serializers.BooleanField(required=False)
 
     class Meta:
         model = NotificationPreference
         fields = (
-            "notify_on_comments",
-            "notify_on_replies",
-            "notify_on_milestones",
+            "notify_on_comment",
+            "notify_on_reply",
+            "notify_on_vote_milestone",
             "notify_on_announcements",
-            "notify_on_timeline",
+            "notify_timeline_reminders",
             "push_enabled",
             "created_at",
             "updated_at",
