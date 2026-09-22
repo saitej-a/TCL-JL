@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 6.2 context gathered (6.1 UAT paused at test 1 of 7)
-last_updated: "2026-09-22T11:20:00.000Z"
-last_activity: 2026-09-22 -- Phase 6.2 context gathered
+stopped_at: Phase 6.2 planned (06.2-PLAN.md written; 6.1 UAT still paused at test 1 of 7)
+last_updated: "2026-09-22T12:30:00.000Z"
+last_activity: 2026-09-22 -- Phase 6.2 planned
 progress:
   total_phases: 10
   completed_phases: 5
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-09-19)
 
 ## Current Position
 
-Phase: 6.2 CONTEXT GATHERED (of 10 — In-App Notifications & FCM Web Push); Phases 1-5 COMPLETE, 6.1 executed, 6.1 UAT paused
-Plan: 06-01 executed 2026-09-22 (5 tasks, one migration, 45 new tests); 06.2 context locked (16 decisions, 4 open questions)
-Status: 6.1 awaiting a UAT response (test 1 of 7 presented); 6.2 ready to plan
-Last activity: 2026-09-22 -- Phase 6.2 context gathered
+Phase: 6.2 PLANNED (of 10 — In-App Notifications & FCM Web Push); Phases 1-5 COMPLETE, 6.1 executed, 6.1 UAT paused
+Plan: 06-01 executed 2026-09-22 (5 tasks, one migration, 45 new tests); 06.2-PLAN.md written — one execution unit covering 06-02+06-03, 6 tasks, ~95 tests budgeted, R1–R10 planner resolutions logged
+Status: 6.1 awaiting a UAT response (test 1 of 7 presented); 6.2 ready to execute
+Last activity: 2026-09-22 -- Phase 6.2 planned
 
 Progress: [████░░░░░░] 44%
 
@@ -100,7 +100,7 @@ Recent decisions affecting current work:
 
 - **Resume the 6.1 UAT** (`.planning/phases/TCS-JL-06.1-notification-device-models/06.1-UAT.md`, status `testing`): test 1 of 7 (cold start smoke test) was presented with evidence and is awaiting `pass` or an issue description. `audit-open` reports no other open items.
 - **Decide F1's disposition** (VERIFICATION.md 4.2): `anonymize_delete_account` does not delete the CandidateProfile or its timeline events, contrary to 06 §4.2 step 4 / §2.7 "Zero Orphaned PII". Either fix the 2.2 deletion service (delete the profile inside the same transaction; the FK cascade removes events) or record an explicit decision to retain anonymized profiles — then either way exclude them from the dashboard cohort (F2).
-- Phase 6.2 (next — context gathered, ready to plan): `06.2-CONTEXT.md` locks 16 decisions; the planner must honour the seam wiring (`unread_count_for` into `apps/timeline/services.py:212`), anonymity-safe composition in `create_notification`, `fcm_token` `write_only=True`, and the paired `is_read`/`read_at` write in mark-all-read.
+- Phase 6.2 (planned — ready to execute): `06.2-PLAN.md` turns the 16 CONTEXT decisions into 6 tasks; the executor must honour the seam wiring (`unread_count_for` into `apps/timeline/services.py:212`), anonymity-safe composition in `create_notification`, `fcm_token` `write_only=True`, the paired `is_read`/`read_at` write in mark-all-read, and the exact task names matching the reserved CELERY_TASK_ROUTES keys.
 - Phase 5.2 carried decision: 08 §406 renders a deleted post's author as unattributed — the author-nulling rule for deleted posts (and whether a tombstoned comment keeps its handle) is a 5.2 serializer decision.
 - Phase 6/7 wiring: the notifications **seam** exists (`NotificationManager.unread_count_for`, 6.1) but `community.unread_notifications` still returns the 4.2 placeholder until 6.2 calls it; extend the dashboard analytics block beyond the profile-derived counts in Phase 7, applying the cohort floor **per bucket**, not just globally (4.2's residual-risk note).
 - Low-severity polish from 4.2 verification: shared JSON 404 for unresolvable paths (F3), `Allow` header on 405 (F4), whether `WITHDRAWN` should count as profile-completion progress (F5), timeline write throttling if abuse appears (F6).
@@ -123,6 +123,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-09-22T11:20:00.000Z
-Stopped at: Phase 6.2 context gathered — 06.2-CONTEXT.md written (16 decisions, 4 open questions); 6.1 UAT still paused at test 1 of 7
-Resume file: .planning/phases/TCS-JL-06.2-device-registration-fcm-push/06.2-CONTEXT.md
+Last session: 2026-09-22T12:30:00.000Z
+Stopped at: Phase 6.2 planned — 06.2-PLAN.md written (6 tasks, R1–R10 resolutions, ~95-test budget); 6.1 UAT still paused at test 1 of 7
+Resume file: .planning/phases/TCS-JL-06.2-device-registration-fcm-push/06.2-PLAN.md
