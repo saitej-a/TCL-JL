@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 6.1 executed — plan 06-01 complete, awaiting verification
-last_updated: "2026-09-22T10:34:47.000Z"
-last_activity: 2026-09-22 -- Phase 6.1 executed (06-01 complete)
+stopped_at: Phase 6.2 context gathered (6.1 UAT paused at test 1 of 7)
+last_updated: "2026-09-22T11:20:00.000Z"
+last_activity: 2026-09-22 -- Phase 6.2 context gathered
 progress:
   total_phases: 10
   completed_phases: 5
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-09-19)
 
 ## Current Position
 
-Phase: 6.1 EXECUTED (of 10 — In-App Notifications & FCM Web Push); Phases 1-5 COMPLETE, Phase 6 model layer shipped
-Plan: 06-01 executed 2026-09-22 (5 tasks, one migration, 45 new tests)
-Status: Ready to verify
-Last activity: 2026-09-22 -- Phase 6.1 executed (06-01 complete)
+Phase: 6.2 CONTEXT GATHERED (of 10 — In-App Notifications & FCM Web Push); Phases 1-5 COMPLETE, 6.1 executed, 6.1 UAT paused
+Plan: 06-01 executed 2026-09-22 (5 tasks, one migration, 45 new tests); 06.2 context locked (16 decisions, 4 open questions)
+Status: 6.1 awaiting a UAT response (test 1 of 7 presented); 6.2 ready to plan
+Last activity: 2026-09-22 -- Phase 6.2 context gathered
 
 Progress: [████░░░░░░] 44%
 
@@ -89,12 +89,18 @@ Recent decisions affecting current work:
 - [Phase 6.1 — D3/D4]: `title`/`message` are **stored snapshots** written at creation, and 6.1 composes/renders nothing — anonymity-safe labels belong to 6.2's `create_notification` service (via 3.2's `AuthorPublicSerializer` semantics), which is what keeps 07 §8's zero-PII push rule achievable at write time.
 - [Phase 6.1 — D5]: `notification_read_state` (`CHECK (NOT is_read OR read_at IS NOT NULL)`) is the project's first `CheckConstraint` and the phase's hard guarantee; it is deliberately one-directional (`read_at` set while unread is legal). `clean()` mirrors it with code `read_state_inconsistent`, and `mark_as_read()` is the single sanctioned pair writer (one UPDATE naming both columns, idempotent).
 - [Phase 6.1 — D6]: `NotificationManager.unread_count_for(user)` ships now — the seam 4.2 D1 promised; the dashboard keeps its explicit `0` placeholder until 6.2 wires the call.
+- [Phase 6.2 — D1/D2]: `firebase-admin` behind a `PushBackend` seam (first new dependency since Phase 1); the real adapter ships but is verified credential-free — recording backend plus unit tests asserting the `MulticastMessage`, no live FCM call in 6.2.
+- [Phase 6.2 — D3/D4/D5]: thread debounce **suppresses** (cache framework, not raw Redis) and exempts non-thread types plus `VOTE_MILESTONE`; milestone thresholds are settings-held with a count-watermark dedupe needing no migration; the stored row keeps the rich in-app text while the push body comes from a per-type generic template, so no comment body can reach a lock screen.
+- [Phase 6.2 — D6/D7/D8/D9]: a token bound to another user is reassigned last-writer-wins; revoke is a soft deactivate with the daily prune task as the only row deleter; device list uses the standard paginated envelope; `last_seen_at` moves on device endpoints only.
+- [Phase 6.2 — D13/D14]: 6.2 adds `GET|PATCH /api/v1/notifications/preferences/` (07 §11 omits it but NOTIF-06 requires it), and the flags gate the push only — all seven types mapped, with `MODERATION`/`SYSTEM` under `push_enabled` alone.
+- [Phase 6.2 — D15/D16]: announcements are deferred wholesale to Phase 8, so only three types have live producers at 6.2's end (correcting 6.1 D1's "four"); the service worker is deferred to 9.4 with the push payload contract pinned by tests instead.
 - [Phase 6.1 — R1/R2/R3/R9]: The plan's pinned index name `idx_notif_recipient_read_created` is 32 chars and Django rejects names over 30, so it shipped as `idx_notif_recip_read_created`; the constraint uses `condition=` (the deprecated `check=` would warn on Django 5.2); `Device.__str__` renders no email/token (03 §8); `auto_now` fields refresh only when named in `update_fields`.
 
 ### Pending Todos
 
+- **Resume the 6.1 UAT** (`.planning/phases/TCS-JL-06.1-notification-device-models/06.1-UAT.md`, status `testing`): test 1 of 7 (cold start smoke test) was presented with evidence and is awaiting `pass` or an issue description. `audit-open` reports no other open items.
 - **Decide F1's disposition** (VERIFICATION.md 4.2): `anonymize_delete_account` does not delete the CandidateProfile or its timeline events, contrary to 06 §4.2 step 4 / §2.7 "Zero Orphaned PII". Either fix the 2.2 deletion service (delete the profile inside the same transaction; the FK cascade removes events) or record an explicit decision to retain anonymized profiles — then either way exclude them from the dashboard cohort (F2).
-- Phase 6.2 (next): wire `Notification.objects.unread_count_for(request.user)` into `apps/timeline/services.py:212` (replacing the `0` placeholder), create notifications through a `create_notification` service that composes anonymity-safe labels (D4), keep `fcm_token` `write_only=True`, and make bulk mark-all-read write **both** `is_read` and `read_at` so D5's constraint is satisfied.
+- Phase 6.2 (next — context gathered, ready to plan): `06.2-CONTEXT.md` locks 16 decisions; the planner must honour the seam wiring (`unread_count_for` into `apps/timeline/services.py:212`), anonymity-safe composition in `create_notification`, `fcm_token` `write_only=True`, and the paired `is_read`/`read_at` write in mark-all-read.
 - Phase 5.2 carried decision: 08 §406 renders a deleted post's author as unattributed — the author-nulling rule for deleted posts (and whether a tombstoned comment keeps its handle) is a 5.2 serializer decision.
 - Phase 6/7 wiring: the notifications **seam** exists (`NotificationManager.unread_count_for`, 6.1) but `community.unread_notifications` still returns the 4.2 placeholder until 6.2 calls it; extend the dashboard analytics block beyond the profile-derived counts in Phase 7, applying the cohort floor **per bucket**, not just globally (4.2's residual-risk note).
 - Low-severity polish from 4.2 verification: shared JSON 404 for unresolvable paths (F3), `Allow` header on 405 (F4), whether `WITHDRAWN` should count as profile-completion progress (F5), timeline write throttling if abuse appears (F6).
@@ -112,9 +118,11 @@ Items acknowledged and deferred at milestone close, most recent first:
 | Timeline UI | TIME-04's interactive chronological roadmap with edit/delete controls | Deferred to 9.3 (UI-03); API half shipped in 4.2 | 2026-09-22 | v1.0 |
 | Dashboard data | Real unread-notification count | Seam shipped in 6.1 (`unread_count_for`); the dashboard keeps its `0` placeholder until 6.2 wires it | 2026-09-22 | v1.0 |
 | Analytics depth | Batch/hiring-type/region breakdowns + `/api/v1/analytics/*` | Deferred to Phase 7 (its suppression rules cover that surface) | 2026-09-22 | v1.0 |
+| Announcements | `Announcement` model, broadcast task, `notify_on_announcements` verification | Deferred from 6.2 to Phase 8 (T8.6) by D15; the reserved task route stays inert | 2026-09-22 | v1.0 |
+| Push frontend | `firebase-messaging-sw.js` + soft-primer UX (T6.12) | Deferred from 6.2 to Phase 9.4 by D16; the payload contract is pinned by tests now | 2026-09-22 | v1.0 |
 
 ## Session Continuity
 
-Last session: 2026-09-22T10:34:47.000Z
-Stopped at: Phase 6.1 executed — 06-01 complete (models, one migration, 45 tests, 21/21 live drill checks)
-Resume file: .planning/phases/TCS-JL-06.1-notification-device-models/06.1-SUMMARY.md
+Last session: 2026-09-22T11:20:00.000Z
+Stopped at: Phase 6.2 context gathered — 06.2-CONTEXT.md written (16 decisions, 4 open questions); 6.1 UAT still paused at test 1 of 7
+Resume file: .planning/phases/TCS-JL-06.2-device-registration-fcm-push/06.2-CONTEXT.md
