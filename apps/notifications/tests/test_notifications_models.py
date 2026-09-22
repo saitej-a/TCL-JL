@@ -221,14 +221,6 @@ def test_one_migration_creates_the_three_tables():
     assert "UUIDField(default=uuid.uuid4" in text
 
 
-def test_no_api_surface_ships_in_6_1():
-    """Scope boundary as a test: 6.1 is model-only, and 6.2/6.3 own every endpoint,
-    task, and admin surface. A file appearing here would mean the phase overreached."""
-    package = MIGRATION_DIR.parent
-    for module in ("views.py", "serializers.py", "urls.py", "tasks.py", "admin.py", "services.py"):
-        assert not (package / module).exists(), module
-
-
 # --- behaviour that protects the user ----------------------------------------
 
 

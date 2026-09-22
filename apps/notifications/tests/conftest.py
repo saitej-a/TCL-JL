@@ -13,6 +13,8 @@ application-level validation in disguise.
 import uuid
 
 import pytest
+from django.core.cache import cache
+from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.community.models import Comment, Post
@@ -103,5 +105,43 @@ def make_comment(db):
         defaults = dict(body="Same here.")
         defaults.update(overrides)
         return Comment.objects.create(post=post, author=author, **defaults)
+
+    return _make
+
+
+# --- 6.2 API fixtures --------------------------------------------------------
+
+
+@pytest.fixture(autouse=True)
+def clear_cache():
+    """LocMemCache isolation between test runs (throttles, debounce)."""
+    cache.clear()
+
+
+@pytest.fixture
+def api(db, make_user):
+    """An authenticated reader client (fresh verified user)."""
+    client = APIClient()
+    user = make_user()
+    client.force_authenticate(user=user)
+    client.user = user
+    return client
+
+
+@pytest.fixture
+def anon_api(db):
+    """An unauthenticated client — for 401/permission tests."""
+    return APIClient()
+
+
+@pytest.fixture
+def auth_api(make_user):
+    """Fresh authenticated client per call with independent user identity."""
+
+    def _make(email: str | None = None, *, is_verified: bool = True, is_staff: bool = False):
+        client = APIClient()
+        user = make_user(email=email, is_verified=is_verified, is_staff=is_staff)
+        client.force_authenticate(user=user)
+        return client, user
 
     return _make
