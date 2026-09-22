@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     "apps.timeline.apps.TimelineConfig",
     "apps.community.apps.CommunityConfig",
     "apps.notifications.apps.NotificationsConfig",
+    "apps.moderation.apps.ModerationConfig",
     "apps.analytics.apps.AnalyticsConfig",
 ]
 
@@ -302,6 +303,9 @@ REST_FRAMEWORK = {
         # Notifications & device scopes (Phase 6.2 — 07 §10)
         "device_registration": "10/hour",
         "notifications_reads": "60/min",
+        # Reports scope (Phase 8.1, MOD-03 — 08 §3.3): 10 reports/hour per candidate,
+        # wired via ReportRateThrottle with the scope declared on the view (7.2 R1).
+        "reports": "10/hour",
         # Analytics read scope (Phase 7.2, D-11). Cache keys multiply per filter
         # combination, so an anonymous caller can walk region x hiring_type x batch
         # and force uncached computation of the app's costliest aggregate queries.
