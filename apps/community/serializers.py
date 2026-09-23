@@ -213,12 +213,27 @@ class AnnouncementWriteSerializer(serializers.ModelSerializer):
 
 
 class VoteSerializer(serializers.ModelSerializer):
-    """04 §43's single vote shape (T5.9). `vote_count` is declared explicitly:
-    it's an annotation supplied by the view, not a model field."""
+    """04 §43's single vote shape (T5.9). `vote_count` and `has_voted` are
+    declared explicitly: they are annotations supplied by the view (via
+    `_with_counts`), not model fields. 9.3 D3 adds `has_voted` — the same name
+    the feed card uses — so the optimistic pill reconciles against the server's
+    response instead of trusting its own pre-click guess."""
 
     vote_count = serializers.IntegerField(read_only=True)
+    has_voted = serializers.SerializerMethodField()
 
     class Meta:
         model = Post
-        fields = ["id", "vote_count", "is_pinned", "is_locked"]
+        fields = ["id", "vote_count", "has_voted", "is_pinned", "is_locked"]
         read_only_fields = fields
+
+    def get_has_voted(self, obj) -> bool:
+        user = self.context["request"].user
+        if not user.is_authenticated:
+            return False
+        votes = getattr(obj, "user_votes", None)
+        if votes is not None:
+            return any(v.user_id == user.id for v in votes)
+        # Fallback for un-annotated instances. One query is acceptable there:
+        # the response holds exactly one post.
+        return obj.votes.filter(user=user).exists()

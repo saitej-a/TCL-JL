@@ -32,17 +32,37 @@ def test_unknown_category_filter_404(api, auth_api):
     assert response.json()["error"]["code"] == "invalid_category"
 
 
-def test_feed_requires_authentication(anon_api):
+def test_feed_readable_without_authentication(anon_api, make_post):
+    """9.3 D1 supersession: the feed is public (05 §3.1 routes /community to ALL
+    roles; 04 §6 lists "Public posts" under Anonymous). This test previously
+    asserted 401 — that encoded the pre-D1 contract, and the route table had
+    already promised visitors a readable feed. Writes remain authenticated
+    (test_read_access.py pins the 401 wall on every write surface)."""
+    make_post()
     response = anon_api.get(LIST_URL)
-    assert response.status_code == 401
+    assert response.status_code == 200
+    assert response.json()["results"][0]["has_voted"] is False
 
 
-def test_feed_requires_verified(api, make_user):
-    """P5: the community is verified-candidates-only (unverified user blocked)."""
+def test_unverified_user_reads_like_a_visitor_writes_are_blocked(api, make_user, make_post, settings):
+    """P5 superseded for reads by 9.3 D1, preserved for writes.
+
+    The original test asserted 403 on GET — the verified wall once covered the
+    whole surface because anonymous reads were not offered at all. With reads
+    public (05 §3.1's matrix), an authenticated-but-unverified account sees
+    exactly what a visitor sees, so a GET 403 would now disclose nothing except
+    that the surface once differed. P5's substance — unverified candidates do
+    not PARTICIPATE — is the part that stays: the write wall is asserted below.
+    """
+    settings.REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]["community_writes"] = "1000/min"
     user = make_user(is_verified=False)
     api.force_authenticate(user=user)
-    response = api.get(LIST_URL)
-    assert response.status_code == 403
+    make_post()
+    assert api.get(LIST_URL).status_code == 200  # reads: same as anonymous
+    response = api.post(
+        LIST_URL, {"title": "t", "body": "b", "category": "GENERAL"}, format="json"
+    )
+    assert response.status_code == 403  # participation: still verified-only
 
 
 def test_feed_card_shape(api, auth_api, make_post):
@@ -117,14 +137,25 @@ def test_pagination_ignores_client_page_size(api, auth_api, make_post, settings)
 
 
 def test_deleted_posts_absent_from_feed(api, auth_api, make_post, make_orm_post):
-    """P9's feed half: soft-deleted posts leave the listing (03 §28)."""
+    """P9's feed half: soft-deleted posts leave the listing (03 §28).
+
+    Asserted by **id**: the serializer masks a deleted card's title into the
+    tombstone text, so the original title-based assertion passed even while
+    feed_queryset happily returned tombstones — exactly the vacuous coverage
+    9.3 D2 repaired. Reverting the `is_deleted` filter fails the first two
+    assertions again."""
     client, author = auth_api()
     keep = make_post(author=author, title="kept")
     gone = make_post(author=author, title="gone")
     gone.is_deleted = True
     gone.save(update_fields=["is_deleted", "updated_at"])
     response = api.get(LIST_URL)
-    titles = [row["title"] for row in response.json()["results"]]
-    assert keep.title in titles
-    assert "gone" not in titles
+    ids = [row["id"] for row in response.json()["results"]]
+    assert str(keep.id) in ids
+    assert str(gone.id) not in ids
+    # Search narrows within live posts only — same filter, same proof (the DB
+    # row keeps its original title, so without the filter `search=gone` would
+    # surface the masked tombstone card).
+    searched = api.get(LIST_URL, {"search": "gone"})
+    assert [row["id"] for row in searched.json()["results"]] == []
     assert Post.objects.filter(title="gone").exists()  # row retained (08 §390)

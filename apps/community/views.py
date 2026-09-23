@@ -47,7 +47,29 @@ from apps.community.serializers import (
     VoteSerializer,
 )
 from apps.community.services import CommunityContentError, create_comment, create_post
-from apps.community.throttles import CommunityWriteRateThrottle
+from apps.community.throttles import CommunityAnonReadRateThrottle, CommunityWriteRateThrottle
+
+
+# D1 (9.3): the read surfaces are public (05 §3.1 routes /community and post
+# detail to ALL roles; 04 §6/§118 allow configured public feed reading). Writes
+# keep the verified-candidate wall. The shared class-level permission list also
+# guards writes, so the read opening MUST be per-method, never global.
+READ_PERMISSIONS = []  # DRF's default (AllowAny) for safe methods
+WRITE_PERMISSIONS = [IsAuthenticated, IsActive, IsVerified]
+
+
+def _anon_read_throttles(view):
+    """Throttles for a safe-method request on a D1 read surface.
+
+    Anonymous callers face a per-IP read bucket; signed-in candidates get NO
+    throttle at all (5.2's documented unthrottled-browsing contract — and NOT
+    the view's default throttle list, which for PostListCreateView now carries
+    the write throttle and would otherwise meter browsing against the write
+    budget). DRF's ScopedRateThrottle cannot express 'only when anonymous', so
+    D1 uses a SimpleRateThrottle included per request."""
+    if view.request.user.is_authenticated:
+        return []
+    return [CommunityAnonReadRateThrottle()]
 
 
 def query_budget(limit: int):
@@ -279,10 +301,29 @@ class PostListCreateView(CommunityErrorMixin, ListAPIView):
     to the §31 whitelist (`created_at|vote_count|comment_count`); an unknown
     category value 404s `invalid_category`, an unknown ordering 400s
     `invalid_ordering` (04 §31's error contract).
+
+    9.3 D1: GET is anonymous (public feed per 05 §3.1) and anonymous readers
+    face a per-IP read bucket; POST keeps the verified-candidate wall **and**
+    the write-throttle scope declared ON the view (7.2 R1 — a class-level
+    scope alone is inert).
     """
 
-    permission_classes = [IsAuthenticated, IsActive, IsVerified]
+    permission_classes = WRITE_PERMISSIONS
     serializer_class = PostCardSerializer
+    throttle_classes = [CommunityWriteRateThrottle]
+    throttle_scope = CommunityWriteRateThrottle.scope
+
+    def get_permissions(self):
+        if self.request.method == "GET":
+            return READ_PERMISSIONS
+        return [permission() for permission in WRITE_PERMISSIONS]
+
+    def get_throttles(self):
+        """The write scope engages for POST; anonymous GETs face the read bucket.
+        Signed-in GETs get no throttle (5.2's browsing contract)."""
+        if self.request.method == "GET":
+            return _anon_read_throttles(self)
+        return [CommunityWriteRateThrottle()]
 
     def get_queryset(self):
         params = self.request.query_params
@@ -340,12 +381,24 @@ class PostListCreateView(CommunityErrorMixin, ListAPIView):
 class PostDetailView(CommunityErrorMixin, APIView):
     """`GET/PATCH/DELETE /api/v1/community/posts/{id}/` (04 §35-§37, T5.8).
 
-    GET works on tombstones (P9: detail renders the masked shape);
+    GET works on tombstones (P9: detail renders the masked shape) and is
+    anonymous from 9.3 D1 (05 §3.1 routes post detail to ALL roles);
     PATCH/DELETE require authorship (403 for others) and refuse tombstones.
     """
 
-    permission_classes = [IsAuthenticated, IsActive, IsVerified]
+    permission_classes = WRITE_PERMISSIONS
     throttle_classes = [CommunityWriteRateThrottle]
+    throttle_scope = CommunityWriteRateThrottle.scope
+
+    def get_permissions(self):
+        if self.request.method == "GET":
+            return READ_PERMISSIONS
+        return [permission() for permission in WRITE_PERMISSIONS]
+
+    def get_throttles(self):
+        if self.request.method == "GET":
+            return _anon_read_throttles(self)
+        return [CommunityWriteRateThrottle()]
 
     def get(self, request, *args, **kwargs):
         post = _get_live_post(kwargs["pk"], for_read=True)
@@ -388,6 +441,7 @@ class PostVoteView(CommunityErrorMixin, APIView):
 
     permission_classes = [IsAuthenticated, IsActive, IsVerified]
     throttle_classes = [CommunityWriteRateThrottle]
+    throttle_scope = CommunityWriteRateThrottle.scope
 
     def post(self, request, pk):
         post = _get_live_post(pk, for_read=False)
@@ -413,11 +467,24 @@ class CommentListCreateView(CommunityErrorMixin, APIView):
     GET paginates top-level comments chronologically with replies nested one
     level deep (04 §40); `total_comments` counts **all** comments including
     tombstones (D4) so the card's number matches the thread — while `count`
-    stays the honest top-level pagination count.
+    stays the honest top-level pagination count. GET is anonymous from 9.3 D1
+    (public thread reads, 04 §6's "Public comments"), with the anonymous read
+    bucket; POST keeps the verified wall.
     """
 
-    permission_classes = [IsAuthenticated, IsActive, IsVerified]
+    permission_classes = WRITE_PERMISSIONS
     throttle_classes = [CommunityWriteRateThrottle]
+    throttle_scope = CommunityWriteRateThrottle.scope
+
+    def get_permissions(self):
+        if self.request.method == "GET":
+            return READ_PERMISSIONS
+        return [permission() for permission in WRITE_PERMISSIONS]
+
+    def get_throttles(self):
+        if self.request.method == "GET":
+            return _anon_read_throttles(self)
+        return [CommunityWriteRateThrottle()]
 
     def get(self, request, *args, **kwargs):
         post = _get_live_post(kwargs["pk"], for_read=True)
@@ -460,13 +527,24 @@ class CommentListCreateView(CommunityErrorMixin, APIView):
 class CommentDetailView(CommunityErrorMixin, APIView):
     """`GET/PATCH/DELETE /api/v1/community/comments/{id}/` (04 §44, T5.11).
 
-    GET is a flat single-comment read (replies live under the thread route).
-    PATCH/DELETE are author-only (403 for others); a tombstone stays readable
-    and refuses writes like a deleted post.
+    GET is a flat single-comment read (replies live under the thread route)
+    and is anonymous from 9.3 D1; PATCH/DELETE are author-only (403 for
+    others); a tombstone stays readable and refuses writes like a deleted post.
     """
 
-    permission_classes = [IsAuthenticated, IsActive, IsVerified]
+    permission_classes = WRITE_PERMISSIONS
     throttle_classes = [CommunityWriteRateThrottle]
+    throttle_scope = CommunityWriteRateThrottle.scope
+
+    def get_permissions(self):
+        if self.request.method == "GET":
+            return READ_PERMISSIONS
+        return [permission() for permission in WRITE_PERMISSIONS]
+
+    def get_throttles(self):
+        if self.request.method == "GET":
+            return _anon_read_throttles(self)
+        return [CommunityWriteRateThrottle()]
 
     def _get_comment(self, pk: str, *, for_read: bool) -> Comment:
         comment = (
@@ -511,6 +589,7 @@ class PostLockView(CommunityErrorMixin, APIView):
 
     permission_classes = [IsAuthenticated, IsActive, IsVerified, IsModerator]
     throttle_classes = [CommunityWriteRateThrottle]
+    throttle_scope = CommunityWriteRateThrottle.scope
 
     def post(self, request, pk):
         return self._set_locked(pk, True)
@@ -535,6 +614,7 @@ class PostPinView(CommunityErrorMixin, APIView):
 
     permission_classes = [IsAuthenticated, IsActive, IsVerified, IsModerator]
     throttle_classes = [CommunityWriteRateThrottle]
+    throttle_scope = CommunityWriteRateThrottle.scope
 
     def post(self, request, pk):
         return self._set_pinned(pk, True)

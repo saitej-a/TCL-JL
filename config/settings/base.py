@@ -321,6 +321,12 @@ REST_FRAMEWORK = {
         "auth_verify_resend": "1/min",
         # Community write scopes (04 §41/§42; plan 05-02 R7)
         "community_writes": "30/min",
+        # Community anonymous read scope (Phase 9.3 D1): the public feed surface is
+        # open without credentials (05 §3.1's public-read matrix), so anonymous
+        # traffic is bounded per IP. Signed-in reads are deliberately unthrottled —
+        # 5.2's documented browsing contract — so this is a SimpleRateThrottle
+        # included via get_throttles() only for unauthenticated callers.
+        "community_anon_reads": "120/min",
         # Notifications & device scopes (Phase 6.2 — 07 §10)
         "device_registration": "10/hour",
         "notifications_reads": "60/min",

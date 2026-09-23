@@ -24,7 +24,23 @@ def test_vote_201_shape(api, auth_api, make_post):
     assert response.status_code == 201
     body = response.json()
     assert body["vote_count"] == 1
+    # 9.3 D3: the mutation response carries the caller's own vote flag (the
+    # same name the feed card uses) so the optimistic pill can reconcile
+    # against the server instead of its pre-click guess.
+    assert body["has_voted"] is True
     assert PostVote.objects.filter(user=author, post=post).exists()
+
+
+def test_unvote_204_and_revote_201(api, auth_api, make_post):
+    """D3 on the delete path: after DELETE the caller no longer holds the vote,
+    and a fresh POST (201, not 409) reports it again."""
+    client, _author = auth_api()
+    post = make_post()
+    assert client.post(vote_url(post)).status_code == 201
+    assert client.delete(vote_url(post)).status_code == 204
+    second = client.post(vote_url(post))
+    assert second.status_code == 201
+    assert second.json()["has_voted"] is True
 
 
 def test_duplicate_vote_409(api, auth_api, make_post):

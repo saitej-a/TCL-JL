@@ -67,7 +67,10 @@ def feed_queryset(user, category: str | None = None, search: str | None = None) 
     from django.contrib.postgres.search import SearchVector
 
     annotations, prefetch = _feed_annotations(user)
-    queryset = Post.objects.select_related("author__candidate_profile")
+    # P9's feed half (03 §28, 9.3 D2): soft-deleted posts leave the listing —
+    # including `?search=` results, which narrow within live posts only. Detail
+    # keeps reading tombstones; only the feed hides them.
+    queryset = Post.objects.filter(is_deleted=False).select_related("author__candidate_profile")
     if prefetch is not None:
         queryset = queryset.prefetch_related(prefetch)
     if annotations:
