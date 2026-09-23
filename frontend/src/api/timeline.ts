@@ -8,7 +8,7 @@
  * product's core data. Event types map to statuses 1:1 (EVENT_TYPE_TO_STATUS);
  * OTHER/WITHDRAWN carry no event semantics and stay PATCH-only.
  */
-import { apiGet, apiPost } from "@/api/client";
+import { apiDelete, apiGet, apiPatch, apiPost } from "@/api/client";
 import type { Paginated } from "@/types/api";
 
 /** The 04 §24.1 event vocabulary (apps/timeline/models.py EventType). */
@@ -45,4 +45,21 @@ export function createTimelineEvent(
 
 export function listMyTimelineEvents(): Promise<Paginated<TimelineEventPrivate>> {
   return apiGet<Paginated<TimelineEventPrivate>>("/timeline/");
+}
+
+/**
+ * PATCH /timeline/{id}/ (04 §26) — the same three writable fields; the server
+ * re-walks the status chain when `event_type` changes (4.2 D2) and never
+ * regresses status.
+ */
+export function updateTimelineEvent(
+  id: string,
+  payload: Partial<TimelineEventCreatePayload>,
+): Promise<TimelineEventPrivate> {
+  return apiPatch<TimelineEventPrivate>(`/timeline/${id}/`, payload);
+}
+
+/** DELETE /timeline/{id}/ (04 §27) — status is forward-only history (4.2 D2). */
+export async function deleteTimelineEvent(id: string): Promise<void> {
+  await apiDelete<unknown>(`/timeline/${id}/`);
 }

@@ -63,6 +63,12 @@ export class ApiError extends Error {
       // HTML error pages (a 502 from a proxy, for example) — keep the status,
       // replace the body with something views can render.
       message = `Unexpected server response (HTTP ${status}).`;
+    } else if (data !== null && typeof data === "object") {
+      // DRF's raw field-errors shape (e.g. timeline validation: 400 with
+      // {"event_date": ["event_date cannot be more than 730 days..."]}) —
+      // carried verbatim in `details` so forms can render the server's
+      // message inline, next to the field it names.
+      details = data;
     }
 
     let retryAfter: number | undefined;
