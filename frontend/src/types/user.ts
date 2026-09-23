@@ -2,9 +2,10 @@
  * Backend vocabulary unions (Task 2's types file, consumed by Task 1's maps).
  *
  * These are typed to the SHIPPED backend contracts, not to the spec tables:
- * - `PostCategory` mirrors `config/settings/base.py` POST_CATEGORIES (12 keys,
- *   read at call time — a settings-added category must extend this union
- *   deliberately, which is the compile error that keeps the badge map honest).
+ * - `PostCategory` moved to `@/content/postCategories` in 9.3 (D7: the 12 keys
+ *   live in exactly ONE module — this file re-exports for the established
+ *   imports; the settings-added-category compile error now fires at that one
+ *   module and propagates everywhere).
  * - `CandidateStatus` mirrors `apps/candidates/models.py` Status (11 choices).
  *
  * Recorded divergence (Task 1/9.1 finding): 05 §4.1.4's badge matrix lists 10
@@ -12,34 +13,8 @@
  * have no spec row (they use the GENERAL slate treatment as the fallback).
  */
 
-export type PostCategory =
-  | "GENERAL"
-  | "JOINING_LETTER"
-  | "OFFER_LETTER"
-  | "JOINING_DATE"
-  | "LOCATION"
-  | "INTERVIEW"
-  | "DOCUMENTS"
-  | "DISCUSSION"
-  | "TCS_PROCESS"
-  | "HELP"
-  | "ANNOUNCEMENT"
-  | "OTHER";
-
-export const POST_CATEGORIES = [
-  "GENERAL",
-  "JOINING_LETTER",
-  "OFFER_LETTER",
-  "JOINING_DATE",
-  "LOCATION",
-  "INTERVIEW",
-  "DOCUMENTS",
-  "DISCUSSION",
-  "TCS_PROCESS",
-  "HELP",
-  "ANNOUNCEMENT",
-  "OTHER",
-] as const satisfies readonly PostCategory[];
+export type { PostCategory } from "@/content/postCategories";
+export { POST_CATEGORIES } from "@/content/postCategories";
 
 export type CandidateStatus =
   | "REGISTERED"
