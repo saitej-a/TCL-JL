@@ -31,8 +31,17 @@ class UserPrivateSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def get_profile_completed(self, obj) -> bool:
-        # CandidateProfile arrives in Phase 3.1; until then nobody has one.
-        return False
+        """True once the candidate profile exists with the wizard's fields set.
+
+        The 9.2 onboarding wizard gates on this flag, so it must be truthful:
+        ``hiring_type``/``batch``/``region`` are non-nullable on CandidateProfile
+        (their presence is structural once the row exists), and the one nullable
+        wizard field is ``offer_letter_date`` — completion means it is set.
+        """
+        profile = getattr(obj, "candidate_profile", None)
+        if profile is None:
+            return False
+        return profile.offer_letter_date is not None
 
 
 class RegisterSerializer(serializers.ModelSerializer):

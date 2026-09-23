@@ -3,15 +3,16 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: phase-verified
-stopped_at: Phase 8.2 verified PASS (58/58 live drill); next: Phase 9.1 planning
-last_updated: "2026-09-23T03:40:00.000Z"
-last_activity: 2026-09-23 -- Phase 8.2 verified: 58/58 live drill (real worker severing + broadcast), 788 green, CI-equivalent lint clean
+stopped_at: Phase 9.2 VERIFIED (VERIFICATION.md PASS; drill caught+fixed wrong banner URL); next: plan 09-03 (dashboard/timeline/feed)
+current_phase: 9.2
+last_updated: "2026-09-23T15:30:00.000Z"
+last_activity: 2026-09-23 -- Phase 9.2 verified PASS: gates re-run (98 frontend + 790 backend), wire drills (truthful gate flag, single-hop PATCH 400, future-date rejection, 429+Retry-After), browser drills (banner show/dismiss/new-ID end-to-end, guard next=, both breakpoints + disclaimer), Stitch visual comparison recorded
 progress:
   total_phases: 10
   completed_phases: 6
   total_plans: 27
-  completed_plans: 17
-  percent: 63
+  completed_plans: 18
+  percent: 65
 ---
 
 # Project State
@@ -21,14 +22,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-19)
 
 **Core value:** Provide anxious candidates with complete clarity on their recruitment progress and community benchmarks without requiring them to expose their real identity or personal credentials.
-**Current focus:** Phase 8 — Moderation, Anti-Spam & Administration. **Phase 8.2 (Admin triage & ban workflow) is verified** (round-2 PASS: 58/58 live drill, gates green); Phase 9 is next.
+**Current focus:** Phase 9 — Frontend Single Page Application. Phase 9.2 (Auth, Onboarding & Layout Views) has its **context gathered: D1–D4 locked, 10 Stitch mockups generated**; plan 09-02 is next.
 
 ## Current Position
 
-Phase: 8.2 (Admin Triage & Ban Workflow) — ✅ VERIFIED (round 2, 2026-09-23)
-Plan: 08.2-01 — all 7 tasks executed and independently verified; no blocking findings
-Status: Phase 8.2 complete — MOD-05/MOD-06 verified live (REST + Django Admin triage, ban/severing under a real worker, announcement system at its reserved names). Observations O1–O3 (expiry-task queue choice, 8.1's §107 naming, a pytest dispatch guard) are tracked in the phase's VERIFICATION.md
-Last activity: 2026-09-23 -- 8.2 verified: 58/58 live drill checks (real broker→worker severing and broadcast), 788 tests green, repo-wide ruff clean, no migration drift
+Phase: 9.2 (Auth, Onboarding & Layout Views) — plan 09-02 EXECUTED (2026-09-23); next: verify 9.2
+Plan: 09.2-01 — 6 tasks, all executed and gated: (1) backend `profile_completed` truth fix (offer_letter_date set ⇒ complete; test_me.py 6/6), (2) AppShell — sidebar ≥640px, 320px rail ≥1280px, mobile top bar + 5-tab bar <640px, §5.5 banner with per-announcement-ID dismissal, §5.6 footer disclaimer at every breakpoint, (3) §7.1 landing with the real 3-counter /public/stats/ shape, (4) six §7.2 auth screens sharing one AuthCard (INVALID_CREDENTIALS / RATE_LIMITED+Retry-After / ACCOUNT_SUSPENDED mapped distinctly; unverified → verify-email-pending), (5) §7.3 wizard with per-step persistence, review+confirm, and the RequireAuth gate (profile_completed=false → /onboarding, exempted from itself), (6) gates + live proof. **98 frontend tests green (was 76), backend 790 (was 788 +2 new gate tests), lint 0 errors, build ok.** Live proof in a real browser: gate redirected a profile-less user to /onboarding on login; wizard steps 1–3 completed; finish → /dashboard released without reload; desktop 1440px shows sidebar+rail+"+ Post" and mobile 400px shows app bar+tab bar (5 tabs), disclaimer present at both. **Design was driven by the 10 Stitch mockups** (project 3852118218307261541, design system assets/9887579562818178405) — the AuthCard pattern, wizard progress anatomy, banner, and shell chrome match them; recorded divergences: hiring types PRIME/DIGITAL/NINJA/OTHER (no BPS), no role field, 3 real stats counters.
+Status: 9.2 decisions applied — D1 backend fix shipped (truthful gate), D2 no staff nav anywhere (test-pinned), D3 banner live with per-ID dismissal, D4 Stitch designs implemented. **Key execution finding: `PATCH /profile/{current_status}` is single-hop only (live 400: REGISTERED→OFFER_RECEIVED rejected), so wizard step 2 writes a `POST /timeline/` event instead — walk-the-chain syncs the status multi-hop AND records the milestone (4.1 D1).** The plan-time guess (PATCH side-channel) was wrong; the wire decided.
+Last activity: 2026-09-23 -- 9.2 executed end to end; live wizard journey + breakpoint proofs recorded
 
 Progress: [██████░░░░] 63%
 
@@ -65,11 +66,14 @@ Progress: [██████░░░░] 63%
 ### Roadmap Evolution
 
 - Phases 1–10 decomposed into 22 decimal sub-phases (X.1/X.2 pattern; Phase 9 has four) as focused planning/execution units — directories scaffolded under `.planning/phases/`, mappings logged in ROADMAP.md Phase Details and REQUIREMENTS.md Sub-Phase Traceability.
+- **Stitch (MCP server) is the designated UI-design tool** (user directive, 2026-09-23): generate and iterate screen mockups through the `stitch` connector (`generate_screen_from_text`, `generate_variants`, `create_design_system`/`upload_design_md`) instead of hand-describing layouts. **Applied for 9.2 (discuss stage):** Stitch project `3852118218307261541` holds design system `assets/9887579562818178405` (seeded from 05 §4 tokens) and **10 screen mockups** (desktop shell light+dark, mobile shell, landing, login, register, forgot-password, onboarding steps 1–3) — screen IDs catalogued in `09.2-CONTEXT.md`. Boundary: Stitch output is design reference, not code; implementation stays in `frontend/` against the 9.1 token layer.
 
 ### Decisions
 
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
+
+- [Phase 9.1 — D1–D10, executed]: D1 token storage per 06 §3.3 Option 1 (access memory-only, refresh in `localStorage` under `tjt.refresh_token`, logout blacklists then clears); D2 single-flight refresh with one bounded replay (`_replayed` marker, module-level in-flight promise shared by AuthContext boot and the interceptor — concurrent 401s produce exactly ONE refresh POST, proven by test and live); D3 host Vite proxy on :5173 → nginx :80 (no CORS change; `VITE_API_BASE_URL` read only in `client.ts`); D4 production serving left open (base URL env-driven, history mode, fallback need recorded); D5 Tailwind v4 `@theme` tokens byte-exact from 05 §4 with class-strategy dark mode; D6 React 18 + TS strict + npm, no `any`; D7 axios + hooks + Context (no query/UI library); D8 Vitest + RTL via the adapter-swap technique (no mocking dep), CI wiring deferred; D9 bootable shell (router + `RequireAuth`/`PublicOnly` as layout routes + Error Boundary + stubs for every 05 §3.1 path); D10 T9.3 library + Disclaimer/EmptyState/IdentityPill with the three §5.6 strings stored once and pinned by test.
 
 - [Phase 1]: Modular Django monolith chosen over premature microservices for velocity and ACID consistency.
 - [Phase 1]: Celery + Redis chosen for asynchronous decoupling of third-party Google FCM and transactional emails.
@@ -120,6 +124,10 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
+- **`/me/`'s `profile_completed` is still a hardcoded `False`** (NEW — surfaced while binding 9.1's client to the real payload). `UserPrivateSerializer.get_profile_completed` returns `False` with a comment saying CandidateProfile arrives in Phase 3.1 — 3.1 shipped and the stub never changed, and `apps/accounts/tests/test_me.py` asserts the stub. **9.2's onboarding wizard gates on this flag**, so every candidate would be sent through onboarding on every sign-in until it reads the real profile. Fix belongs with `/me/` plus a deliberate test update.
+- **The private user payload carries no role flag** (NEW — 9.1 planning). `is_staff` appears in no serializer, so the SPA cannot render 05 §3.1's staff-only nav (`/admin/moderation/reports`, `/admin/announcements`) from `/me/`. Either add it to `UserPrivateSerializer` (1 line — needed before 9.2's nav can exist) or keep staff gating purely server-side and reveal no admin affordance. Recorded, not decided.
+- **The public author payload exposes no identity mode** (NEW — 9.1 planning). `display_name` collapses to the literal `"Anonymous Candidate"` both for anonymous profiles and for profile-less/blank-name users, so 9.1's `IdentityPill` keys off that sentinel string. An explicit `identity_mode` field in `AuthorPublicSerializer` would remove the coupling if preferred. *(9.1 execution addendum: the serializer also ships NO `avatar_seed` despite 04/plan assuming one — IdentityPill derives the pastel deterministically from `display_name` instead; an `avatar_seed` field is typed optional for when the API adds it.)*
+- **Category vocabulary vs the badge table (12 vs 10)** (NEW — 9.1 planning): `POST_CATEGORIES` ships 12 keys while 05 §4.1.4's badge matrix lists 10 — the spec's `OFFER` row is the API's `OFFER_LETTER`, and `LOCATION`/`DOCUMENTS` have no spec badge. 9.1's map covers all 12 with the slate `GENERAL` treatment as the explicit fallback; the spec table is the doc that is out of date.
 - **Fix 05.2's two HIGH defects before any Phase 5 COMPLETE claim survives** (surfaced again by the v1.0 milestone summary): `feed_queryset` in `apps/community/views_services.py` never filters `is_deleted=False` (trending does), so deleted posts still appear in the default feed and in `?search=`; `PostListCreateView` declares no `throttle_classes` and there is no `DEFAULT_THROTTLE_CLASSES`, so `POST /api/v1/community/posts/` is unbounded. Both were verified still present in the current tree. Repair `test_deleted_posts_absent_from_feed` too — it asserts on the masked tombstone title, so it is vacuous and passed while the bug was live. Also open from that verification: the feed card's missing `body_preview` (F3) and the vote response's missing `voted` (F4).
 - **Wire the account-deletion device revocation** (NEW — found by direct code inspection during the milestone summary, never recorded by any phase): `anonymize_delete_account` (`apps/accounts/services.py`) still carries the literal placeholder `# >>> Phase 6 hook: revoke all FCM device registrations here. <<<`, which 6.2's plan promised to replace with `user.devices.all().delete()`. A deleted account therefore keeps active `Device` rows with live FCM tokens, and the push worker will still attempt delivery to them. Fix alongside F1 (delete the profile + let the timeline cascade) in one atomic transaction.
 - **Three UATs closed by attestation — but none of the three phases is verified** (2026-09-22): 6.1, 6.2 and 7.1 recorded 24 `pass` results at the user's instruction with `source: user-attested` and **not one check executed**; each file carries a provenance note naming the attester. These are acceptance decisions, not evidence. All three still need a canonical `VERIFICATION.md`, and the completion predicate cannot even be evaluated in this repo — `gsd_run phase uat-passed 6.1 --require-verification` returns `Error: Phase 6.1 not found` (the project-code resolution failure below). Separately, `workflow.security_enforcement` is on with two active `verify:post` step hooks (`secure-phase` → SECURITY.md, `validate-phase` → VALIDATION.md) and **no phase has ever produced a SECURITY.md**, so the security gate blocks advancement on its own. Do not report 6.1, 6.2 or 7.1 as transitioned.
@@ -161,9 +169,11 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-09-23T03:40:00.000Z
-Stopped at: Phase 8.2 verified PASS (58/58 live drill); Phase 8's three sub-phases are closed
-Resume files: .planning/phases/TCS-JL-08.2-admin-triage-and-ban-workflow/VERIFICATION.md, .planning/phases/TCS-JL-08.1-report-model-and-scam-heuristics/08.1-UAT.md
+Last session: 2026-09-23T15:30:00.000Z
+Stopped at: Phase 9.1 VERIFIED PASS (`VERIFICATION.md`, independent drills incl. browser concurrency + wire-level reuse-detection); run `/gsd-ns-workflow plan 9.2` next — carry O1 (the /admin path collision) into 9.2's discussion as a required decision
+Resume files: .planning/phases/TCS-JL-09.1-spa-foundation-and-api-client/VERIFICATION.md, frontend/ (the new workspace), .planning/STATE.md
+
+**Owed from 9.1's planning (all recorded in the plan, none silently absorbed):** (a) the outer-scope question stays flip-able — 09.1-01 ships the router + `RequireAuth` + Error Boundary + stub pages per D9's default; (b) four cross-phase findings now sit in Pending Todos below (the `profile_completed` stub, the missing `is_staff` in the private payload, the author identity-mode coupling, and the 12-vs-10 category/badge divergence); (c) the production serving model for the built SPA remains unresolved (D4) — whichever wins needs a history-mode fallback or deep links 404.
 
 **Carried from 8.2's verification (small, deliberate, not silently dropped):** O1 — `community.tasks.clean_expired_announcements` has no explicit route, so hourly housekeeping runs on `default` while its peers sit on `maintenance` (harmless and as-planned; one settings line either way). O2 — four of 04 §107's moderation test names are absent but their behavior is covered by differently-named 8.1 tests. O3 — no pytest guard on `ban_user`'s commit→dispatch; the drill covers it live, a mock would put it in CI. O4/O5 are doc-only (CONTEXT's `community.tasks.auto_reinstate_users` typo; the `0005` migration number).
 

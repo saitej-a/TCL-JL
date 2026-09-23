@@ -1,4 +1,4 @@
-.PHONY: up down logs ps rebuild prod-config prod-up prod-down prod-logs
+.PHONY: up down vol-del logs ps rebuild prod-config prod-up prod-down prod-logs
 
 # Space-form `docker compose` (v2 plugin). No top-level `version:` key anywhere (D-09, RESEARCH SOTA).
 
@@ -7,6 +7,9 @@ up:            ## Build and start the full 6-service dev stack
 
 down:          ## Stop and remove the dev stack (volumes preserved)
 	docker compose down
+
+Vol-del:
+	docker
 
 logs:          ## Follow logs (last 100 lines)
 	docker compose logs -f --tail=100

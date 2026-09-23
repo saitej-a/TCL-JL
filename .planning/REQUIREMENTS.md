@@ -70,10 +70,10 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### User Interface & PWA Client (UI)
 
-- [ ] **UI-01**: Responsive Single Page Application (React 18 + Tailwind) supporting desktop 3-col, tablet 2-col, and mobile bottom tab bar.
-- [ ] **UI-02**: Centralized Axios API client with automatic silent JWT refresh interceptors upon receiving HTTP 401.
+- [ ] **UI-01**: Responsive Single Page Application (React 18 + Tailwind) supporting desktop 3-col, tablet 2-col, and mobile bottom tab bar. *(Foundation (9.1) + layout shells (9.2) shipped: AppShell with sidebar ≥640px, 320px rail ≥1280px, mobile tab bar <640px — proven live at 1440px and 400px; dashboard/timeline/feed content is 9.3–9.4 — NOT complete.)*
+- [x] **UI-02**: Centralized Axios API client with automatic silent JWT refresh interceptors upon receiving HTTP 401. *(Shipped in 9.1: `src/api/client.ts` single-flight 401 → refresh → replay-once; evidence — `client.test.ts` concurrent-401 call-count proof, `tokenStore.test.ts` storage contract, and the live browser observation (401 → one refresh POST → replayed 200, no logout); backend suite unchanged at 788.)*
 - [ ] **UI-03**: Optimistic UI state updates on upvoting with automatic rollback on network failure.
-- [ ] **UI-04**: Mandatory TCS non-affiliation disclaimer displayed on all public views, headers, footers, and analytics screens.
+- [ ] **UI-04**: Mandatory TCS non-affiliation disclaimer displayed on all public views, headers, footers, and analytics screens. *(9.2: footer disclaimer from the single §5.6 content module on the shell at every breakpoint, the landing page, all six auth screens, and the wizard — proven live. Analytics header is 9.4.)*
 - [ ] **UI-05**: PWA service worker registered for background push display, deep-link routing, and offline mode indicators.
 
 ## v2 Requirements
@@ -142,10 +142,10 @@ Deferred to future post-MVP release.
 | MOD-04 | Phase 8 | Complete — 8.1: scanner on post/comment create+edit, hard-block pre-publication, code-constant patterns |
 | MOD-05 | Phase 8 | Complete (verified — 8.2 round-2 PASS, live Admin HTTP drill): staff queue (`GET /api/v1/moderation/reports/`, severity-ordered, §68 shape) + `POST .../review/` with the five actions + `ReportAdmin` bulk actions (dismiss/soft-delete+resolve/lock/warn/ban) + `UserAdmin` ban/unban, all on the shared services layer; velocity multiplier diverged (D6) |
 | MOD-06 | Phase 8 | Complete (verified — real worker severing observed): `ban_user` transaction (is_active + banned_until + §11.1 log) → idempotent `sever_banned_user_sessions` (token blacklist + device halt) per 08 §6/D1; temporary bans via `banned_until` + hourly `auto_reinstate_users`; 403 `ACCOUNT_SUSPENDED` login; unban never revives devices (D2) |
-| UI-01 | Phase 9 | Pending |
-| UI-02 | Phase 9 | Pending |
+| UI-01 | Phase 9 | In Progress (foundation 9.1 + responsive shells 9.2 **verified**; content views 9.3–9.4) |
+| UI-02 | Phase 9 | Complete (shipped + **verified 9.1** — VERIFICATION.md PASS: 76 frontend tests, wire-level family-reuse drill, live browser concurrency drill: 2×401 → 1 refresh → 2×200) |
 | UI-03 | Phase 9 | Pending |
-| UI-04 | Phase 9 | Pending |
+| UI-04 | Phase 9 | In Progress (shell/landing/auth/wizard disclaimers shipped in 9.2 from the single content module, **verified live**; analytics 9.4) |
 | UI-05 | Phase 9 | Pending |
 
 **Coverage:**

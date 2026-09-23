@@ -255,8 +255,8 @@ Plans:
   5. Service worker displays background push notifications and deep-links on click.
 **Plans**: 4 plans  
 Plans:
-- [ ] 09-01: Vite + React 18 + TypeScript + Tailwind setup, design system tokens, and centralized Axios client with 401 interceptors.
-- [ ] 09-02: Responsive layout shells, landing screen with live stats, authentication views, and 3-step onboarding wizard.
+- [x] 09-01: Vite + React 18 + TypeScript + Tailwind setup, design system tokens, and centralized Axios client with 401 interceptors. *(Executed 2026-09-23: `frontend/` workspace with the D3 dev proxy + byte-exact 05 §4 token layer, single-flight 401 client (D2), bootable router with guards + stub pages (D9), T9.3 component library + Disclaimer/EmptyState/IdentityPill (D10); 76 frontend tests green, backend unchanged at 788, done-when observed live in a browser: 401 → one refresh POST → replayed 200.)*
+- [x] 09-02: Responsive layout shells, landing screen with live stats, authentication views, and 3-step onboarding wizard. (Executed 2026-09-23: AppShell 3-col/tablet/mobile + §5.5 banner, §7.1 landing with real 3-counter stats, six §7.2 auth screens with error mapping, §7.3 wizard gated on the now-truthful profile_completed flag — step 2 writes a timeline event (walk-the-chain) instead of the single-hop PATCH; 98 frontend tests, backend 790; live journey + both breakpoints proven in-browser.)
 - [ ] 09-03: Candidate dashboard with stepper bar, interactive timeline roadmap, and community feed with category tabs.
 - [ ] 09-04: Post detail with 1-level comments, analytics dashboard with privacy callouts, notification center, and PWA service worker.
 
