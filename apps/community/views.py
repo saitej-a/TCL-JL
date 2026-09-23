@@ -18,12 +18,16 @@ Surface contract highlights:
   `assertNumQueries`.
 """
 
+import logging
 from uuid import UUID
 
+from django.db.models import Q
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.exceptions import APIException, PermissionDenied
 from rest_framework.generics import ListAPIView
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -31,9 +35,11 @@ from apps.accounts.permissions import IsVerified
 from apps.accounts.views import SpecErrorMixin
 from apps.candidates.permissions import IsActive
 from apps.community import views_services as svc
-from apps.community.models import Comment, Post
+from apps.community.models import Announcement, Comment, Post
 from apps.community.permissions import IsModerator
 from apps.community.serializers import (
+    AnnouncementPublicSerializer,
+    AnnouncementWriteSerializer,
     CommentSerializer,
     CommentWriteSerializer,
     PostCardSerializer,
@@ -585,3 +591,126 @@ def _offset(request, page_size: int) -> int:
     except ValueError:
         page = 1
     return (page - 1) * page_size
+
+
+# --- Announcements (Phase 8.2 — T8.6/T8.10, 04 §71–§75) --------------------------
+
+
+class AnnouncementNotFound(APIException):
+    status_code = status.HTTP_404_NOT_FOUND
+
+    def __init__(self):
+        super().__init__(
+            {"error": {"code": "announcement_not_found", "message": "Announcement not found."}}
+        )
+
+
+def _get_announcement(pk):
+    """Resolve an announcement or raise the JSON 404 envelope."""
+    try:
+        announcement_id = UUID(str(pk))
+    except (TypeError, ValueError):
+        raise AnnouncementNotFound() from None
+    announcement = Announcement.objects.filter(pk=announcement_id).first()
+    if announcement is None:
+        raise AnnouncementNotFound()
+    return announcement
+
+
+def _wants_publish(payload) -> bool:
+    value = payload.get("is_published")
+    return value in (True, 1, "1", "true", "True")
+
+
+class AnnouncementListCreateView(CommunityErrorMixin, APIView):
+    """`GET /api/v1/announcements/` (04 §72) + `POST` (04 §73).
+
+    Read is anonymous: 04 §72 says "public or authenticated depending on UI
+    requirements" and the Phase 9 landing/feed renders pinned advisories before
+    login. Write is staff-only and always creates a *draft* — publication is the
+    `publish()` transition (§73's POST body has no is_published field).
+    """
+
+    def get_permissions(self):
+        if self.request.method == "POST":
+            return [IsAuthenticated(), IsActive(), IsVerified(), IsModerator()]
+        return [AllowAny()]
+
+    def get(self, request):
+        now = timezone.now()
+        queryset = Announcement.objects.filter(is_published=True).filter(
+            Q(expires_at__isnull=True) | Q(expires_at__gt=now)
+        )
+        paginator = PageNumberPagination()
+        page = paginator.paginate_queryset(queryset, request)
+        return paginator.get_paginated_response(AnnouncementPublicSerializer(page, many=True).data)
+
+    def post(self, request):
+        serializer = AnnouncementWriteSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        announcement = serializer.save(created_by=request.user)
+        return Response(
+            _announcement_payload(announcement),
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class AnnouncementDetailView(CommunityErrorMixin, APIView):
+    """`PATCH`/`DELETE /api/v1/announcements/{id}/` (04 §74–§75). Staff-only.
+
+    A PATCH carrying `is_published: true` publishes *through* `publish()` so the
+    broadcast dispatches exactly once (an already-published row is a no-op), and
+    ordinary field edits never re-broadcast.
+    """
+
+    permission_classes = [IsAuthenticated, IsActive, IsVerified, IsModerator]
+
+    def patch(self, request, pk):
+        announcement = _get_announcement(pk)
+        serializer = AnnouncementWriteSerializer(announcement, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        published_now = _wants_publish(request.data)
+        if published_now:
+            announcement.publish()
+        return Response(_announcement_payload(announcement))
+
+    def delete(self, request, pk):
+        announcement = _get_announcement(pk)
+        announcement_id = str(announcement.pk)
+        # §75 permits real deletion for announcements; the audit line is the log.
+        announcement.delete()
+        logging.getLogger("community").info(
+            "ANNOUNCEMENT_DELETED id=%s by=%s", announcement_id, request.user.pk
+        )
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class AnnouncementPublishView(CommunityErrorMixin, APIView):
+    """`POST /api/v1/announcements/{id}/publish/` — the explicit publish trigger.
+
+    202 when this call published (the fan-out is async, the D1 response style);
+    200 when the row was already published, so the caller can tell the two apart
+    without a second broadcast ever firing.
+    """
+
+    permission_classes = [IsAuthenticated, IsActive, IsVerified, IsModerator]
+
+    def post(self, request, pk):
+        announcement = _get_announcement(pk)
+        published_now = announcement.publish()
+        return Response(
+            {
+                "id": announcement.id,
+                "is_published": announcement.is_published,
+                "detail": "broadcast scheduled" if published_now else "already published",
+            },
+            status=status.HTTP_202_ACCEPTED if published_now else status.HTTP_200_OK,
+        )
+
+
+def _announcement_payload(announcement) -> dict:
+    """Public shape + `is_published` for staff-facing responses."""
+    payload = dict(AnnouncementPublicSerializer(announcement).data)
+    payload["is_published"] = announcement.is_published
+    return payload

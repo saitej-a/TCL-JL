@@ -65,8 +65,8 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **MOD-02**: Database enforces XOR check constraint guaranteeing a report targets either a post or a comment, never both. *(8.1: `report_exactly_one_target` CheckConstraint + mirrored `clean()`; target FKs use CASCADE, a documented deviation from 08 §3.2's SET_NULL, which would breach the constraint on target hard-delete)*
 - [x] **MOD-03**: Duplicate pending reports on the same target by the same user are blocked, and reporting is throttled (10/hr). *(8.1: two conditional UniqueConstraints + service check with IntegrityError mapping; `reports` scope with `throttle_scope` on the view per 7.2 R1, 429 asserted)*
 - [x] **MOD-04**: Automated regex heuristics scan post bodies for paid job scams, fee extortion, and NextStep password requests. *(8.1: `heuristics.py` with 08 §8.1's four patterns as code constants; hard-block 400 `scam_pattern_detected` pre-publication on all four write call sites — post/comment, create/edit with merged-state scanning — and a category-naming message that never echoes the regex; T8.5's 60-min debounce extended with a body hash, posts only)*
-- [ ] **MOD-05**: Moderators can review reports in Django Admin with bulk actions (Dismiss, Soft-Delete, Lock, Warn, Ban).
-- [ ] **MOD-06**: Banning an account atomically sets `is_active=False`, blacklists refresh tokens, and halts device push alerts.
+- [x] **MOD-05**: Moderators can review reports in Django Admin with bulk actions (Dismiss, Soft-Delete, Lock, Warn, Ban). *(8.2: `ReportAdmin` with the five bulk actions + the REST queue/review/ban surface, both delegating to `moderation.services` so they cannot drift; queue ordered by 08 §4.1's static severity weights — the log2 velocity multiplier is a recorded divergence (CONTEXT D6))*
+- [x] **MOD-06**: Banning an account atomically sets `is_active=False`, blacklists refresh tokens, and halts device push alerts. *(8.2: §6's own two-step shape — one transaction commits `is_active=False` + `banned_until` + the §11.1 audit line, then an idempotent Celery task blacklists every outstanding refresh token and deactivates all devices; temporary suspensions auto-reinstate hourly; banned login returns 403 `ACCOUNT_SUSPENDED` after credential validation)*
 
 ### User Interface & PWA Client (UI)
 
@@ -140,8 +140,8 @@ Deferred to future post-MVP release.
 | MOD-01 | Phase 8 | Complete — 8.1: reporting endpoint with the seven standardized reasons (04 §63–§65) |
 | MOD-02 | Phase 8 | Complete — 8.1: XOR CheckConstraint at DB level + clean() mirror; CASCADE target FKs documented deviation |
 | MOD-04 | Phase 8 | Complete — 8.1: scanner on post/comment create+edit, hard-block pre-publication, code-constant patterns |
-| MOD-05 | Phase 8 | Pending |
-| MOD-06 | Phase 8 | Pending |
+| MOD-05 | Phase 8 | Complete (verified — 8.2 round-2 PASS, live Admin HTTP drill): staff queue (`GET /api/v1/moderation/reports/`, severity-ordered, §68 shape) + `POST .../review/` with the five actions + `ReportAdmin` bulk actions (dismiss/soft-delete+resolve/lock/warn/ban) + `UserAdmin` ban/unban, all on the shared services layer; velocity multiplier diverged (D6) |
+| MOD-06 | Phase 8 | Complete (verified — real worker severing observed): `ban_user` transaction (is_active + banned_until + §11.1 log) → idempotent `sever_banned_user_sessions` (token blacklist + device halt) per 08 §6/D1; temporary bans via `banned_until` + hourly `auto_reinstate_users`; 403 `ACCOUNT_SUSPENDED` login; unban never revives devices (D2) |
 | UI-01 | Phase 9 | Pending |
 | UI-02 | Phase 9 | Pending |
 | UI-03 | Phase 9 | Pending |
@@ -174,7 +174,7 @@ Phases are decomposed into decimal sub-phases (directories under `.planning/phas
 | 7.1 Analytics Aggregation & Privacy Suppression | ANAL-03, ANAL-04 | 07-01 — Complete (2026-09-22): `apps/analytics` service layer (read-only, zero models/migrations) + cohort aggregation, wait-time engine, `<5` suppression, 22 tests + 16/16 live drill |
 | 7.2 Analytics Endpoints & Redis Caching | ANAL-01, ANAL-02, ANAL-03, ANAL-05 | 07-02 — Complete (2026-09-22): five anonymous endpoints (04 §48–§51 + §80), payload-level Redis cache with the reserved hourly warmup, per-row `<5` suppression, `analytics_reads` throttle, whitelist filter validation, 32 new tests + 19/19 live HTTP drill checks |
 | 8.1 Report Model & Scam Heuristics | MOD-01, MOD-02, MOD-03, MOD-04 | 08-01, 08-02 |
-| 8.2 Admin Triage & Ban Workflow | MOD-05, MOD-06 | 08-03 |
+| 8.2 Admin Triage & Ban Workflow | MOD-05, MOD-06 | 08-03 — **Verified 2026-09-23** (round-2 PASS): triage REST + Admin bulk actions, ban protocol with async severing + auto-reinstate, full announcement system (model/broadcast/expiry/REST), 94 new tests (788 green), 58/58 independent live-drill checks against a real broker→worker (VERIFICATION.md; observations O1–O3 tracked there) |
 | 9.1 SPA Foundation & API Client | UI-01, UI-02 | 09-01 |
 | 9.2 Auth, Onboarding & Layout Views | UI-01, UI-04 | 09-02 |
 | 9.3 Dashboard, Timeline & Feed Views | UI-03 | 09-03 |

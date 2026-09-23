@@ -224,7 +224,7 @@ Plans:
 Plans:
 - [x] 08-01: `Report` model with database XOR check constraint, reporting endpoint, and pending deduplication. *Executed 2026-09-22 (plan 08.1-01)*
 - [x] 08-02: Automated scam regex heuristics scanner and 60-minute duplicate post debouncing in Redis. *Executed 2026-09-22 (plan 08.1-02)*
-- [ ] 08-03: Django Admin `ReportAdmin` customization, announcement model/broadcast task, and user suspension protocol.
+- [x] 08-03: Django Admin `ReportAdmin` customization, announcement model/broadcast task, and user suspension protocol. *Executed 2026-09-23 (plan 08.2-01); verified 2026-09-23 (58/58 live drill, gates green)*
 
 **Sub-phases** (planning & execution units; dirs under `.planning/phases/`):
 
@@ -238,6 +238,10 @@ Plans:
 **Goal**: Django Admin triage with bulk actions, announcement broadcasts, and atomic ban protocol — `is_active=False`, token blacklist, push halt (MOD-05, MOD-06).
 **Plans**: 08-03
 **Done when**: Banned accounts lose sessions and device alerts atomically.
+**Verified**: 2026-09-23 (round-2 PASS — `VERIFICATION.md`) — an independent live drill (58/58) proved the two asynchronous contracts complete through a real broker and worker: a `BAN_USER` review over HTTP blacklists refresh tokens and deactivates devices, and a published announcement fans out in-app rows. The Django Admin triage actions were driven over real staff sessions and produce identical DB effects to the REST path. Round 1's FAIL (execution at 2 of 7 tasks) is superseded; its findings F1–F5 are all closed. Observations O1–O3 are tracked in the phase's VERIFICATION.md (expiry task's queue choice; 8.1-inherited §107 naming; a pytest dispatch guard).
+
+**Executed**: 2026-09-23 (plan 08.2-01) — five-action triage over REST (`/api/v1/moderation/reports/`, `.../review/`, `/users/{id}/ban|unban/`) and Django Admin (`ReportAdmin` bulk actions + staff-safe `UserAdmin` ban/unban), the ban protocol of 08 §6 (transaction commits `is_active=False`/`banned_until` + the §11.1 audit line; an **idempotent** Celery task then blacklists refresh tokens and deactivates devices — the spec's own two-step shape, atomic at the user-facing transaction), temporary 7-day suspensions with an hourly auto-reinstate beat entry, 403 `ACCOUNT_SUSPENDED` login, and the announcement system deferred here by 6.2 D15 (model, staff CRUD + public read, chunked FCM broadcast at the byte-exact reserved route name, hourly expiry task). Two migrations (`0005_user_banned_until`, `community 0002_announcement`); 94 new tests, **788 green**, lint/format/drift clean.
+**Verification**: **complete (PASS)** — `VERIFICATION.md` holds the round-2 verdict. The round-1 FAIL record (interrupted execution at 2 of 7 tasks) is superseded, and its F1–F5 findings are all closed and re-checked (F1 beat entry added and observed reinstating a lapsed ban; F2 announcements implemented and observed broadcasting; F3 Admin shipped and driven over HTTP; F4 §107 names present + the wiring test resolves every beat/route entry; F5 commit→dispatch proven end-to-end by the live drill).
 
 ### Phase 9: Frontend Single Page Application (React + Tailwind)
 **Goal**: Construct the 12 core responsive views, centralized Axios client, optimistic UI mutators, and PWA integration.  
@@ -319,6 +323,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 5. Community Discussions & Forum System | 1/3 | In progress | - |
 | 6. In-App Notifications & FCM Web Push System | 0/3 | Not started | - |
 | 7. Community Analytics & Privacy Engine | 2/2 | Executed — verification pending | - |
-| 8. Moderation, Anti-Spam & Administration | 0/3 | Not started | - |
+| 8. Moderation, Anti-Spam & Administration | 3/3 | Verified — 8.1 (UAT), 8.2 (round-2 PASS, 58/58 live drill) | - |
 | 9. Frontend Single Page Application (React + Tailwind) | 0/4 | Not started | - |
 | 10. Security Audits, E2E Testing, Seed Data & Launch Readiness | 0/2 | Not started | - |

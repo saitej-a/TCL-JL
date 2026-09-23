@@ -25,6 +25,12 @@ app.conf.beat_schedule = {
         "task": "community.tasks.clean_expired_announcements",
         "schedule": crontab(minute=15),  # hourly :15 (T8.6)
     },
+    "reinstate-suspended-users-hourly": {
+        # Phase 8.2 D3: 08 §6.1's temporary suspensions lapse back to active at
+        # their banned_until boundary; staggered from the :15/:45 entries.
+        "task": "moderation.tasks.auto_reinstate_users",
+        "schedule": crontab(minute=25),  # hourly :25
+    },
     "warm-analytics-cache-hourly": {
         "task": "analytics.tasks.warm_analytics_cache",
         "schedule": crontab(minute=45),  # hourly :45 (T7.8)

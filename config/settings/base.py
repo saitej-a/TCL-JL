@@ -237,6 +237,17 @@ if CELERY_TASK_ALWAYS_EAGER:
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_TASK_ACKS_LATE = True
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+# --- Moderation (Phase 8.2) ---------------------------------------------------
+# 08 §6.1's temporary-suspension level: ban_user reads this at call time when the
+# caller does not pass an explicit duration (0/None = permanent).
+MODERATION_TEMP_BAN_DAYS = 7
+# 08 §6.2: suspended accounts may keep browsing the public feed unauthenticated,
+# so the community write gate's message doubles as the ban explanation.
+COMMUNITY_SUSPENDED_MESSAGE = "This account has been suspended for violating community guidelines."
+# T8.10: announcement fan-out batch size, bounded by 6.2 T6.8's 500-token multicast
+# limit (read at call time so the batch can be tuned without a deploy of the task).
+ANNOUNCEMENT_PUSH_CHUNK = 500
+
 CELERY_TASK_DEFAULT_QUEUE = "default"
 CELERY_TASK_QUEUES = {
     "default": {"exchange": "default", "routing_key": "default"},
@@ -255,6 +266,10 @@ CELERY_TASK_ROUTES = {
     # decorator's name= must byte-match this key or the route silently does not
     # apply (the 6.2 lesson).
     "analytics.tasks.warm_analytics_cache": {"queue": "maintenance"},
+    # Phase 8.2 (D1): session severing follows the ban transaction; the task is
+    # idempotent, and decorator names must byte-match these keys (6.2 lesson).
+    "moderation.tasks.sever_banned_user_sessions": {"queue": "default"},
+    "moderation.tasks.auto_reinstate_users": {"queue": "maintenance"},
 }
 CELERY_TIMEZONE = "UTC"
 

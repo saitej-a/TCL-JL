@@ -32,6 +32,7 @@ import uuid
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.utils import timezone
 
 from apps.community.validators import (
     validate_not_blank,
@@ -175,3 +176,68 @@ class PostVote(models.Model):
 
     def __str__(self) -> str:
         return f"{self.user_id} voted {self.post_id}"
+
+
+class Announcement(models.Model):
+    """A staff-authored community broadcast (Phase 8.2 — T8.6/T8.10; 08 §7.1).
+
+    Lifecycle (§7): draft → ``publish()`` sets `is_published` + `published_at` and
+    dispatches the FCM broadcast → pinned rows render as a sticky top banner →
+    ``expires_at`` lapses and the hourly ``clean_expired_announcements`` task
+    unpublishes the row (no deletion — 04 §75 allows direct delete, but unpublish
+    keeps the author's wording available for later review).
+
+    `publish()` is the **single sanctioned trigger** for the broadcast (never a
+    post_save signal — 6.1 R6's import-time-signal hazard) and it is idempotent:
+    only the False→True transition dispatches, so re-saving a published row is a
+    no-op for the fan-out.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="announcements",
+    )
+    title = models.CharField(max_length=255)
+    body = models.TextField()
+    is_published = models.BooleanField(default=False, db_index=True)
+    is_pinned = models.BooleanField(default=False, db_index=True)
+    published_at = models.DateTimeField(null=True, blank=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "announcement"
+        verbose_name_plural = "announcements"
+        ordering = ["-is_pinned", "-published_at"]
+        indexes = [
+            # §7.1's composite; name abbreviated to fit Django's 30-char limit.
+            models.Index(
+                fields=["is_published", "is_pinned", "-published_at"],
+                name="idx_announce_pub_pin_pubat",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return self.title
+
+    def publish(self) -> bool:
+        """Publish + dispatch the broadcast. Returns True iff this call published.
+
+        Idempotent by transition: an already-published row dispatches nothing
+        (D7/T8.10 — one broadcast per publication).
+        """
+        from apps.community.tasks import broadcast_announcement_dispatch
+
+        if self.is_published:
+            return False
+        self.is_published = True
+        self.published_at = timezone.now()
+        self.save(update_fields=["is_published", "published_at", "updated_at"])
+        broadcast_announcement_dispatch(str(self.pk))
+        return True

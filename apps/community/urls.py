@@ -9,6 +9,9 @@ parses and renders the JSON `post_not_found`/`comment_not_found` envelope.
 from django.urls import path
 
 from apps.community.views import (
+    AnnouncementDetailView,
+    AnnouncementListCreateView,
+    AnnouncementPublishView,
     CommentDetailView,
     CommentListCreateView,
     PostDetailView,
@@ -49,5 +52,17 @@ urlpatterns = [
         "community/comments/<str:pk>/",
         CommentDetailView.as_view(),
         name="community-comment-detail",
+    ),
+    # Announcements (Phase 8.2 — 04 §71): public read, staff write.
+    path("announcements/", AnnouncementListCreateView.as_view(), name="announcement-list"),
+    path(
+        "announcements/<str:pk>/",
+        AnnouncementDetailView.as_view(),
+        name="announcement-detail",
+    ),
+    path(
+        "announcements/<str:pk>/publish/",
+        AnnouncementPublishView.as_view(),
+        name="announcement-publish",
     ),
 ]

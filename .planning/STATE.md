@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: complete
-stopped_at: Phase 7.2 and 8.1 UAT verified complete
-last_updated: "2026-09-23T00:25:00.000Z"
-last_activity: 2026-09-23 -- Phase 7.2 and Phase 8.1 UAT complete (7.2: 7 passed; 8.1: 5 passed)
+status: phase-verified
+stopped_at: Phase 8.2 verified PASS (58/58 live drill); next: Phase 9.1 planning
+last_updated: "2026-09-23T03:40:00.000Z"
+last_activity: 2026-09-23 -- Phase 8.2 verified: 58/58 live drill (real worker severing + broadcast), 788 green, CI-equivalent lint clean
 progress:
   total_phases: 10
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 27
-  completed_plans: 14
-  percent: 52
+  completed_plans: 17
+  percent: 63
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-19)
 
 **Core value:** Provide anxious candidates with complete clarity on their recruitment progress and community benchmarks without requiring them to expose their real identity or personal credentials.
-**Current focus:** Phase 8 — Moderation, Anti-Spam & Administration. Phase 8.1 (Report model & scam heuristics) executed and UAT verified; **Phase 8.2 (Admin triage & ban workflow) is next**.
+**Current focus:** Phase 8 — Moderation, Anti-Spam & Administration. **Phase 8.2 (Admin triage & ban workflow) is verified** (round-2 PASS: 58/58 live drill, gates green); Phase 9 is next.
 
 ## Current Position
 
-Phase: 8.1 UAT COMPLETE; Phase 7.2 UAT COMPLETE; Phase 8.2 next
-Plan: 08.1-01 executed (25 tests); 08.1-02 executed (31 tests); full suite 694 tests green
-Status: Ready for Phase 8.2
-Last activity: 2026-09-23 -- Phase 7.2 and 8.1 UAT verified complete
+Phase: 8.2 (Admin Triage & Ban Workflow) — ✅ VERIFIED (round 2, 2026-09-23)
+Plan: 08.2-01 — all 7 tasks executed and independently verified; no blocking findings
+Status: Phase 8.2 complete — MOD-05/MOD-06 verified live (REST + Django Admin triage, ban/severing under a real worker, announcement system at its reserved names). Observations O1–O3 (expiry-task queue choice, 8.1's §107 naming, a pytest dispatch guard) are tracked in the phase's VERIFICATION.md
+Last activity: 2026-09-23 -- 8.2 verified: 58/58 live drill checks (real broker→worker severing and broadcast), 788 tests green, repo-wide ruff clean, no migration drift
 
-Progress: [████░░░░░░] 48%
+Progress: [██████░░░░] 63%
 
 ## Performance Metrics
 
@@ -51,7 +51,7 @@ Progress: [████░░░░░░] 48%
 | 5. Community Discussions & Forum System | 3/3 | - | - |
 | 6. In-App Notifications & FCM Web Push System | 1/3 | - | - |
 | 7. Community Analytics & Privacy Engine | 2/2 | - | - |
-| 8. Moderation, Anti-Spam & Administration | 0/3 | - | - |
+| 8. Moderation, Anti-Spam & Administration | 3/3 | - | - |
 | 9. Frontend Single Page Application (React + Tailwind) | 0/4 | - | - |
 | 10. Security Audits, E2E Testing, Seed Data & Launch Readiness | 0/2 | - | - |
 
@@ -106,6 +106,14 @@ Recent decisions affecting current work:
 - [Phase 7.2 — R1]: **DRF's `ScopedRateThrottle` reads the scope from the view, not the class.** `allow_request` does `self.scope = getattr(view, 'throttle_scope', None)` and returns `True` — allowing the request — when the view declares none, so a class-level `scope` alone is inert. 7.2 therefore sets `throttle_scope` on its base view *and* asserts the bucket engages (429 after the rate is exceeded), because declaring the class and trusting it is exactly how a throttle silently does nothing. Found while wiring this: **community's `CommunityWriteRateThrottle` is inert on all six of its views** (see Pending Todos).
 - [Phase 7.2 — R2]: The region filter is bounded by length (100, the model's `max_length`) and charset (`isalnum` plus ` -.'(),/&`) rather than by a vocabulary, because 3.1 D3 makes `region` free text and a whitelist built from regions that *currently* have candidates would 400 a legitimate region with no data yet. Digits are deliberately permitted (`Sector 62`), and safety comes from the key being a sha256 digest rather than the raw value — the charset check is input hygiene, not an injection barrier.
 - [Phase 8.1 — D1]: `apps/moderation.Report` ships 08 §3.2's schema with a **CASCADE deviation**: target FKs use `on_delete=CASCADE`, not SET_NULL, because SET_NULL would UPDATE a surviving report to (NULL, NULL) on target hard-delete and breach `report_exactly_one_target` at delete time. Pending dedup is double-enforced (service query + two conditional UniqueConstraints); the reports throttle declares `throttle_scope` on the view (7.2 R1) and the 429 is asserted by test.
+- [Phase 8.2 — D1/D2]: The ban protocol ships 08 §6's **two-step shape verbatim**: one transaction commits `is_active=False` + `banned_until` + the §11.1 `MODERATION_ACTION_TAKEN` log line, then an idempotent Celery task (`moderation.tasks.sever_banned_user_sessions`, dispatched via `transaction.on_commit` so a rolled-back ban never severs) blacklists every outstanding refresh token and deactivates all devices. Accepted window: a crash between commit and task leaves live sessions until retry — re-banning re-fires the task, and §6.2's 401-on-inactive already closes the API path at the flag. **Unban is one-way**: it reactivates the account but never revives devices or token blacklists (re-registration is the sanctioned path).
+- [Phase 8.2 — D3]: Temporary suspensions ship: `User.banned_until` + `duration_days` on the ban request (0/absent = permanent) + a new hourly beat entry `reinstate-suspended-users-hourly` → `moderation.tasks.auto_reinstate_users`, which flips back only `is_active=False AND banned_until <= now`. Permanent bans (banned_until NULL) are never touched by the clock.
+- [Phase 8.2 — D4/D5]: Five review actions ship (T8.7/MOD-05 over 04 §69's four): DISMISS → `DISMISSED`; REMOVE_CONTENT / LOCK_POST / WARN_USER / BAN_USER → `RESOLVED`; every path writes `reviewed_by`/`reviewed_at`/`moderator_notes`. The REST review endpoint and both Admin surfaces (`ReportAdmin` bulk actions, `UserAdmin` ban/unban) delegate to the **same** `moderation.services` writers, so they cannot drift; LOCK_POST on a comment-targeted report is a 400 with the status write rolled back.
+- [Phase 8.2 — D6]: Queue ordering is 08 §4.1's **static severity weights** (SCAM 100 → OTHER 10) then newest-first, applied in Python over the PENDING page. §4.1's log2 report-velocity multiplier is a recorded divergence.
+- [Phase 8.2 — D7]: The announcement system deferred by 6.2 D15 ships whole: `community.Announcement` (§7.1 shape), `publish()` as the single idempotent broadcast trigger (False→True only, never a post_save signal), in-app `ANNOUNCEMENT` rows created **unconditionally** for active verified users while the existing `send_push_notification` preference gate keeps the push opt-in (6.2 D13/D14 semantics), chunked fan-out via `ANNOUNCEMENT_PUSH_CHUNK = 500`, and byte-exact reserved names honoured (`community.tasks.clean_expired_announcements` beat :15, `notifications.tasks.broadcast_announcement` on the notifications queue).
+- [Phase 8.2 — D9]: The moderation audit trail is §11.1 **structured logging only** — `log_moderation_action` emits one JSON event (with the keys attached as `extra=` LogRecord fields) per action on the `moderation` logger; no AuditLog model, and §4.2.4's infraction counter and §10's day-90 minimization stay unbuilt (recorded divergences).
+- [Phase 8.2 — R1]: **06 §2.6 and 08 §6.2 conflict on suspended logins.** Shipped resolution: 403 `ACCOUNT_SUSPENDED` only after `check_password` proves ownership (a wrong password on a banned account still gets the generic 401), and the pre-existing `test_banned_account_same_body` was updated with the supersession documented in its docstring. Anti-enumeration is preserved because the 403 requires the correct password.
+- [Phase 8.2 — R2]: **DRF stores an exception's `code` on the ErrorDetail, not the instance** — `PermissionDenied(msg, code=...)` puts it at `exc.detail.code`; a handler reading `exc.code` silently falls through to DRF's default body. Also: `revoke_user_refresh_tokens` counts tokens *processed*, not newly blacklisted (outstanding rows survive blacklisting), so the sever task reports a `BlacklistedToken` delta to stay honest under re-runs.
 - [Phase 8.1 — D2]: The scam scanner **hard-blocks** (400 `scam_pattern_detected` pre-publication) rather than publish+auto-report (CONTEXT D1), on post/comment create AND edit with merged-state scanning (D5); the response names the violation category and never the regex (D2). Patterns are code constants per 08 §8.1 (D7 — deploy-gated tuning accepted); repetition detection deferred (user decision). The T8.5 debounce gains a body hash (D6), posts only, create only. Admin-editable patterns remain a deferred roadmap idea, NOT 8.2 scope.
 - [Phase 7.2 — R3]: **Cached analytics have no invalidation on data change.** A payload lives up to `ANALYTICS_CACHE_TTL` (2h) and is refreshed hourly by the warmup, so a manual data fix is not visible publicly until one of those fires. That is the designed trade-off (D-05) rather than a defect, but it is operationally visible: the 7.2 drill had to purge the `analytics:*` namespace before asserting *live* data, having been served the previous run's payload on its first read.
 - [Phase 7.1 — R1/R2]: The aggregations are per-bucket ORM walks (one `values("batch").annotate(Count)` then one status-count query per bucket) rather than a single `GROUP BY (bucket, status)`, so each call costs O(buckets) queries; correct and readable at MVP scale, and 7.2's Redis warmup is what makes it cheap. The plan's unused `Avg`/`Max`/`Min`/`Q`/`Decimal` imports were dropped, and `DISCLAIMER_TEXT` was wrapped to satisfy the 100-char E501 limit.
@@ -140,16 +148,23 @@ Items acknowledged and deferred at milestone close, most recent first:
 | Timeline UI | TIME-04's interactive chronological roadmap with edit/delete controls | Deferred to 9.3 (UI-03); API half shipped in 4.2 | 2026-09-22 | v1.0 |
 | Dashboard data | Real unread-notification count | Seam shipped in 6.1 (`unread_count_for`); the dashboard keeps its `0` placeholder until 6.2 wires it | 2026-09-22 | v1.0 |
 | Analytics depth | Batch/hiring-type/region breakdowns + `/api/v1/analytics/*` | Service layer shipped in 7.1 (overview/batch/stream/region helpers + wait-time engine + `<5` suppression); the `/api/v1/analytics/*` endpoints and Redis caching carry to 7.2 | 2026-09-22 | v1.0 |
-| Announcements | `Announcement` model, broadcast task, `notify_on_announcements` verification | Deferred from 6.2 to Phase 8 (T8.6) by D15; the reserved task route stays inert | 2026-09-22 | v1.0 |
+| ~~Announcements~~ | ~~`Announcement` model, broadcast task, `notify_on_announcements` verification~~ | **DELIVERED 2026-09-23 by 8.2 (plan 08-03)**: `community.Announcement` + publish/broadcast at the reserved route names + hourly expiry task + staff REST CRUD and an anonymous public read; the 6.2 D15 deferral is closed | 2026-09-22 | v1.0 |
 | Push frontend | `firebase-messaging-sw.js` + soft-primer UX (T6.12) | Deferred from 6.2 to Phase 9.4 by D16; the payload contract is pinned by tests now | 2026-09-22 | v1.0 |
 | Analytics | `GET /api/v1/analytics/timeline/` (04 §52) | Deferred by 7.2 D-10 — no ANAL requirement owns it and §108's required test list omits it; needs an event-level aggregation plus a per-day suppression rule. Recorded as a known gap | 2026-09-22 | v1.0 |
 | API docs | OpenAPI/schema generation (04 §109) | Deferred by 7.2 to Phase 10.2 hardening; the project hand-writes endpoint contracts and the analytics phase stays read-only | 2026-09-22 | v1.0 |
 | Deleted accounts in public analytics | Exclude anonymized profiles from published cohorts (4.2 F1/F2) | **Accepted, not forgotten** (7.2 D-15): belongs with the retention fix, and the consequence is recorded in Blockers/Concerns | 2026-09-22 | v1.0 |
+| Moderation | §4.1's report-velocity multiplier (log2 escalation for multi-reporter targets) | Diverged by 8.2 D6 — static severity weights only; revisit if the queue ever outgrows manual triage | 2026-09-23 | v1.0 |
+| Moderation | A queryable audit trail (`AuditLog` model) and §4.2.4's infraction counting | Diverged by 8.2 D9 — §11.1 structured logging only; `Report.reviewed_by/reviewed_at/moderator_notes` is the durable per-report record | 2026-09-23 | v1.0 |
+| Moderation | §10's day-90 reporter anonymization / retention minimization | No requirement owns it; needs a beat task and a reporter-nulling rule | 2026-09-23 | v1.0 |
+| Moderation | Reactivating devices on unban | Deliberately not built (8.2 D2) — severing is one-way and re-registration is the sanctioned path | 2026-09-23 | v1.0 |
+| Moderation | Admin-editable scam patterns (carried from 8.1) | Still needs a roadmap edit before any phase takes it; not folded into 8.2 | 2026-09-23 | v1.0 |
 
 ## Session Continuity
 
-Last session: 2026-09-22T17:38:11.440Z
-Stopped at: Phase 8.1 context gathered
-Resume file: .planning/phases/TCS-JL-08.1-report-model-and-scam-heuristics/08.1-CONTEXT.md
+Last session: 2026-09-23T03:40:00.000Z
+Stopped at: Phase 8.2 verified PASS (58/58 live drill); Phase 8's three sub-phases are closed
+Resume files: .planning/phases/TCS-JL-08.2-admin-triage-and-ban-workflow/VERIFICATION.md, .planning/phases/TCS-JL-08.1-report-model-and-scam-heuristics/08.1-UAT.md
+
+**Carried from 8.2's verification (small, deliberate, not silently dropped):** O1 — `community.tasks.clean_expired_announcements` has no explicit route, so hourly housekeeping runs on `default` while its peers sit on `maintenance` (harmless and as-planned; one settings line either way). O2 — four of 04 §107's moderation test names are absent but their behavior is covered by differently-named 8.1 tests. O3 — no pytest guard on `ban_user`'s commit→dispatch; the drill covers it live, a mock would put it in CI. O4/O5 are doc-only (CONTEXT's `community.tasks.auto_reinstate_users` typo; the `0005` migration number).
 
 **Still owed elsewhere (unchanged by this session):** 7.1's canonical `VERIFICATION.md` is what unblocks its transition; 6.1/6.2/7.1 UATs remain attestation-only; Phase 5's two HIGH defects and F1's deletion-flow decision are live in the tree.

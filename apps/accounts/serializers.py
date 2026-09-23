@@ -10,7 +10,7 @@ from uuid import uuid4
 
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
-from rest_framework.exceptions import AuthenticationFailed
+from rest_framework.exceptions import AuthenticationFailed, PermissionDenied
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.settings import api_settings
@@ -77,6 +77,24 @@ class FamilyTokenObtainPairSerializer(TokenObtainPairSerializer):
         return token
 
     def validate(self, attrs):
+        # 08 §6.2: a suspended account gets its own envelope (403 ACCOUNT_SUSPENDED),
+        # but only AFTER the password proves the caller owns the account — a wrong
+        # password on a banned account must still see the generic invalid-credentials
+        # response (anti-enumeration). The lookup is indexed and hash-free for every
+        # active user; check_password runs only on the inactive path.
+        username_value = attrs.get(User.USERNAME_FIELD)
+        candidate = None
+        if username_value:
+            candidate = User.objects.filter(**{User.USERNAME_FIELD: username_value}).first()
+        if (
+            candidate is not None
+            and not candidate.is_active
+            and candidate.check_password(attrs["password"])
+        ):
+            raise PermissionDenied(
+                "This account has been suspended for violating community guidelines.",
+                code="account_suspended",
+            )
         data = super().validate(attrs)
         data["user"] = UserPrivateSerializer(self.user).data
         return data

@@ -72,11 +72,21 @@ class TestLoginFailuresGeneric:
         assert response.json() == GENERIC_ERROR
 
     def test_banned_account_same_body(self, client):
-        """06 §2.6: is_active=False → 401, indistinguishable from bad creds."""
+        """08 §6.2 (Phase 8.2) supersedes 06 §2.6's blanket-401 rule for
+        moderation suspensions: a suspended account with the CORRECT password
+        gets a distinct 403 ACCOUNT_SUSPENDED. The check runs only after the
+        password proves ownership, so anti-enumeration holds — a wrong password
+        on the same account still draws the generic 401 (test_wrong_password,
+        and test_login_suspension.py covers the banned-account branches)."""
         _make_user(active=False)
         response = self._login(client, "login@example.com", VALID_PASSWORD)
-        assert response.status_code == 401
-        assert response.json() == GENERIC_ERROR
+        assert response.status_code == 403
+        assert response.json() == {
+            "error": {
+                "code": "ACCOUNT_SUSPENDED",
+                "message": "This account has been suspended for violating community guidelines.",
+            }
+        }
 
 
 class TestLoginThrottle:

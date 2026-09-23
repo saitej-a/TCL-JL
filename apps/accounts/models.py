@@ -48,6 +48,15 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_verified = models.BooleanField(default=False)  # 06 §2.1; flipped by verification (AUTH-02)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)  # moderators/admins only
+    # Temporary suspension boundary (08 §6.1): set together with is_active=False by
+    # moderation.services.ban_user. banned_until in the future + is_active=False = temporary
+    # (moderation.tasks.auto_reinstate_users flips it back when it lapses);
+    # banned_until NULL + is_active=False = permanent (admin manual review only).
+    banned_until = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Temporary suspension boundary (08 §6.1); NULL while banned = permanent",
+    )
     date_joined = models.DateTimeField(default=timezone.now)
     # 06 §2.1 entity table: lifecycle audit timestamps (exposed via /me/).
     created_at = models.DateTimeField(auto_now_add=True)

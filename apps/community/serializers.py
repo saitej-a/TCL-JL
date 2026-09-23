@@ -22,7 +22,7 @@ from django.conf import settings
 from rest_framework import serializers
 
 from apps.candidates.serializers import AuthorPublicSerializer
-from apps.community.models import Comment, Post
+from apps.community.models import Announcement, Comment, Post
 from apps.community.tombstones import display_body, display_title
 
 # 05 §60's anonymous palette (10 colour buckets). Size is a UI concern; only
@@ -181,6 +181,35 @@ class CommentWriteSerializer(serializers.Serializer):
 
     body = serializers.CharField()
     parent_id = serializers.UUIDField(required=False, allow_null=True)
+
+
+class AnnouncementPublicSerializer(serializers.ModelSerializer):
+    """04 §72's public read shape.
+
+    No `created_by` (staff identity is not community-visible) and no
+    `is_published` — the public list only ever contains published rows, so
+    echoing the flag would invite a client to filter on something the server
+    already guarantees (Phase 8.2).
+    """
+
+    class Meta:
+        model = Announcement
+        fields = ["id", "title", "body", "is_pinned", "published_at", "expires_at"]
+        read_only_fields = fields
+
+
+class AnnouncementWriteSerializer(serializers.ModelSerializer):
+    """04 §73/§74's staff write shape.
+
+    `is_published` is deliberately absent: publication is the `publish()`
+    transition (which stamps `published_at` and dispatches the broadcast), not a
+    general write. A PATCH may still carry `is_published=true` as the publish
+    signal — the view routes that through `publish()` rather than saving it.
+    """
+
+    class Meta:
+        model = Announcement
+        fields = ["title", "body", "is_pinned", "expires_at"]
 
 
 class VoteSerializer(serializers.ModelSerializer):

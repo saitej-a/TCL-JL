@@ -1,9 +1,30 @@
-"""Moderation test fixtures (Phase 8.1)."""
+"""Moderation test fixtures (Phase 8.1; Phase 8.2 adds staff/device/client)."""
 
 import pytest
+from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.community.models import Comment, Post
+from apps.notifications.models import Device
+
+
+@pytest.fixture
+def api(db):
+    """DRF test client (supports force_authenticate)."""
+    return APIClient()
+
+
+@pytest.fixture
+def target_device(db):
+    """An active FCM device owned by the ban target (sever-task assertions)."""
+    from apps.accounts.models import User as UserModel
+
+    user = UserModel.objects.filter(email="author@example.com").first()
+    if user is None:
+        user = UserModel.objects.create_user(
+            "author@example.com", "Str0ng!Passw0rd", is_verified=True
+        )
+    return Device.objects.create(user=user, fcm_token="fcm-target-token", is_active=True)
 
 
 @pytest.fixture

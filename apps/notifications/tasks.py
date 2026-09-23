@@ -18,11 +18,12 @@ from typing import Any
 from celery import shared_task
 from django.conf import settings
 from django.core.cache import cache
+from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from apps.notifications.backends import get_push_backend
 from apps.notifications.models import Device, Notification, NotificationPreference
-from apps.notifications.services import PUSH_TEXT_TEMPLATES
+from apps.notifications.services import PUSH_TEXT_TEMPLATES, create_notification
 
 logger = logging.getLogger("notifications")
 
@@ -187,6 +188,74 @@ def send_push_notification(self, notification_id: str, **kwargs: Any) -> bool:
         raise self.retry(countdown=2**self.request.retries)
 
     return True
+
+
+@shared_task(
+    name="notifications.tasks.broadcast_announcement",
+    queue="notifications",
+)
+def broadcast_announcement(announcement_id: str) -> dict[str, int]:
+    """Fan one published announcement out to the community (Phase 8.2 — T8.10, D7).
+
+    Byte-matches the `CELERY_TASK_ROUTES` entry reserved in 6.2. For every active,
+    verified user this creates the in-app ANNOUNCEMENT notification **unconditionally**
+    (D7 — `notify_on_announcements` gates the *push*, not the inbox row; that gate
+    lives in send_push_notification, 6.2 D14) and rides create_notification's
+    on_commit push enqueue, which sends the fixed zero-PII ANNOUNCEMENT template —
+    the announcement's own body never reaches a lock screen.
+
+    Users are walked in chunks of `settings.ANNOUNCEMENT_PUSH_CHUNK` (T6.8's batch
+    bound) so a large community does not materialize an unbounded queryset.
+    Idempotence: `Announcement.publish()` dispatches only on the False→True
+    transition, so this runs once per publication.
+    """
+    from django.contrib.auth import get_user_model
+
+    from apps.community.models import Announcement
+
+    try:
+        announcement = Announcement.objects.filter(id=announcement_id).first()
+    except (ValueError, ValidationError):
+        announcement = None
+    if announcement is None:
+        logger.warning("BROADCAST_SKIPPED_MISSING_ANNOUNCEMENT announcement_id=%s", announcement_id)
+        return {"created": 0, "chunks": 0}
+
+    User = get_user_model()
+    chunk_size = getattr(settings, "ANNOUNCEMENT_PUSH_CHUNK", 500)
+    recipients = User.objects.filter(is_active=True, is_verified=True).order_by("pk")
+
+    created = 0
+    chunks = 0
+    offset = 0
+    while True:
+        batch = list(recipients[offset : offset + chunk_size])
+        if not batch:
+            break
+        for user in batch:
+            create_notification(
+                user,
+                notification_type=Notification.NotificationType.ANNOUNCEMENT,
+                title=announcement.title,
+                message=announcement.body,
+            )
+            created += 1
+        chunks += 1
+        offset += chunk_size
+        logger.info(
+            "BROADCAST_ANNOUNCEMENT_CHUNK announcement_id=%s chunk=%d recipients=%d",
+            announcement_id,
+            chunks,
+            len(batch),
+        )
+
+    logger.info(
+        "BROADCAST_ANNOUNCEMENT_DONE announcement_id=%s created=%d chunks=%d",
+        announcement_id,
+        created,
+        chunks,
+    )
+    return {"created": created, "chunks": chunks}
 
 
 @shared_task(

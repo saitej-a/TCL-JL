@@ -45,4 +45,22 @@ def auth_exception_handler(exc, context):
         }
         return response
 
+    # 08 §6.2: suspended-account login. Raised only after the password check
+    # passed (see FamilyTokenObtainPairSerializer.validate), so this never
+    # becomes an enumeration oracle. DRF stores the code on the ErrorDetail
+    # (exc.detail.code), not on the exception instance.
+    if isinstance(exc, drf_exceptions.PermissionDenied) and response.status_code == 403:
+        if getattr(getattr(exc, "detail", None), "code", None) == "account_suspended":
+            return Response(
+                {
+                    "error": {
+                        "code": "ACCOUNT_SUSPENDED",
+                        "message": (
+                            "This account has been suspended for violating community guidelines."
+                        ),
+                    }
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
     return response
