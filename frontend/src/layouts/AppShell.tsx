@@ -10,6 +10,7 @@
  * Staff navigation is deliberately absent (9.2 D2).
  */
 import { useEffect, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { Link, NavLink, Outlet } from "react-router-dom";
 
 import { listAnnouncements } from "@/api/announcements";
@@ -101,6 +102,24 @@ function AnnouncementBanner() {
   );
 }
 
+/**
+ * Right-rail slot (9.3 Task 6): AppShell owns the rail's chrome and placement
+ * (§5.2's 320px rail at ≥1280px only). Pages fill it through `RailPortal`,
+ * which portals their content into the shell's slot node — a page never
+ * renders rail markup in its own tree, and pages that fill nothing leave the
+ * rail empty.
+ */
+const RAIL_SLOT_ID = "appshell-rail-slot";
+
+export function RailPortal({ children }: { children: ReactNode }) {
+  const [container, setContainer] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    setContainer(document.getElementById(RAIL_SLOT_ID));
+  }, []);
+  if (container === null) return null;
+  return createPortal(children, container);
+}
+
 export function AppShell({ children }: { children?: ReactNode }) {
   const { user } = useAuth();
 
@@ -184,16 +203,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
 
         {/* Right rail: §5.2's 320px rail at ≥1280px only; 9.3 fills it */}
         <aside className="hidden border-slate-200 dark:border-slate-800 xl:sticky xl:top-0 xl:block xl:h-screen xl:border-l">
-          <div className="space-y-4 p-4">
-            <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-800">
-              <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                My Status Summary
-              </p>
-              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                Placeholder — 9.3 fills this rail.
-              </p>
-            </div>
-          </div>
+          <div id={RAIL_SLOT_ID} className="space-y-4 p-4" />
         </aside>
       </div>
 
