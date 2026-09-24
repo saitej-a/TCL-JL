@@ -27,10 +27,10 @@ const pattern_cjs_1 = require("./pattern.cjs");
 // ─── Phase-id helpers ─────────────────────────────────────────────────────────
 // project_code values start with an uppercase letter (e.g. PROJ, APP_CODE);
 // leading underscores are not valid project codes per .planning/config.json.
-const PROJECT_CODE_PREFIX_STRIP_RE = /^[A-Z][A-Z0-9_]*-(?=\d)/;
-const PROJECT_CODE_PREFIX_STRIP_RE_I = /^[A-Z][A-Z0-9_]*-(?=\d)/i;
-const PROJECT_CODE_PREFIX_CAPTURE_RE_I = /^([A-Z][A-Z0-9_]*)-(\d.*)/i;
-const OPTIONAL_PROJECT_CODE_PREFIX_SOURCE = '(?:[A-Z][A-Z0-9_]*-)?';
+const PROJECT_CODE_PREFIX_STRIP_RE = /^[A-Z][A-Z0-9_-]*?-(?=\d)/;
+const PROJECT_CODE_PREFIX_STRIP_RE_I = /^[A-Z][A-Z0-9_-]*?-(?=\d)/i;
+const PROJECT_CODE_PREFIX_CAPTURE_RE_I = /^([A-Z][A-Z0-9_-]*?)-(\d.*)/i;
+const OPTIONAL_PROJECT_CODE_PREFIX_SOURCE = '(?:[A-Z][A-Z0-9_-]*?-)?';
 // #1729: phase headers may carry a parenthetical tag between the number and the
 // colon, e.g. `### Phase 26 (Cluster B): Title`. This optional, non-capturing
 // fragment is injected at every phase-header regex call site (immediately after
