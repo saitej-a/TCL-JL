@@ -73,15 +73,20 @@ export function TimelinePage(): React.ReactElement {
   }
 
   async function handleSubmit(payload: TimelineEventCreatePayload): Promise<void> {
-    if (modal?.event === null || modal.event === undefined) {
+    // Read the target once: `modal?.event === null || modal.event === undefined`
+    // left `modal` unnarrowed (a null state dereferenced below) and only
+    // typechecked because the build's project references were never gated.
+    const editing = modal?.event ?? null;
+    if (editing === null) {
       await createTimelineEvent(payload);
-      await Promise.all([refresh(), refreshStatus()]);
-      toast({ message: "Milestone event added.", variant: "success" });
     } else {
-      await updateTimelineEvent(modal.event.id, payload);
-      await Promise.all([refresh(), refreshStatus()]);
-      toast({ message: "Milestone event updated.", variant: "success" });
+      await updateTimelineEvent(editing.id, payload);
     }
+    await Promise.all([refresh(), refreshStatus()]);
+    toast({
+      message: editing === null ? "Milestone event added." : "Milestone event updated.",
+      variant: "success",
+    });
     setModalOpen(false);
     setModal(null);
   }
@@ -107,9 +112,9 @@ export function TimelinePage(): React.ReactElement {
     <main className="mx-auto max-w-3xl space-y-4 p-4 lg:p-8">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className={TYPOGRAPHY.pageTitle}>My recruitment timeline</h1>
+          <h1 className={TYPOGRAPHY.pageTitle}>My Recruitment Timeline</h1>
           <div className="mt-2 flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-            <span>Current status:</span>
+            <span>Current Status:</span>
             {currentStatus !== null && (
               <Badge.status value={currentStatus as import("@/types/user").CandidateStatus} />
             )}

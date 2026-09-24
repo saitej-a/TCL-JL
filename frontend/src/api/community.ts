@@ -39,8 +39,8 @@ export interface PostCard {
   updated_at: string;
 }
 
-/** §31's tab parameter (the feed's two orders). */
-export type PostTab = "newest" | "trending";
+/** §31's tab parameter — every `POST_ORDERINGS` key the view accepts. */
+export type PostTab = "newest" | "oldest" | "votes" | "trending";
 
 export interface PostListParams {
   tab?: PostTab;

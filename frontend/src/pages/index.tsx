@@ -18,6 +18,10 @@ import { VerifyEmailPendingPage } from "@/pages/VerifyEmailPendingPage";
 import { VerifyEmailActionPage } from "@/pages/VerifyEmailActionPage";
 import { ResetPasswordPage } from "@/pages/ResetPasswordPage";
 import { OnboardingPage } from "@/pages/OnboardingPage";
+import { DashboardPage } from "@/pages/DashboardPage";
+import { TimelinePage } from "@/pages/TimelinePage";
+import { CommunityFeedPage } from "@/pages/CommunityFeedPage";
+import { CreatePostPage } from "@/pages/CreatePostPage";
 
 export { LandingPage };
 export { LoginPage };
@@ -27,6 +31,10 @@ export { VerifyEmailPendingPage };
 export { VerifyEmailActionPage };
 export { ResetPasswordPage };
 export { OnboardingPage };
+export { DashboardPage };
+export { TimelinePage };
+export { CommunityFeedPage };
+export { CreatePostPage };
 
 function StubPage({
   title,
@@ -67,23 +75,10 @@ export function TermsPage(): ReactElement {
 
 // Auth surfaces (PublicOnly) — the real 9.2 screens are re-exported above.
 
-// Authenticated surfaces (RequireAuth)
-export function DashboardPage(): ReactElement {
-  return <StubPage title="Dashboard" />;
-}
-export function TimelinePage(): ReactElement {
-  return <StubPage title="Your timeline" />;
-}
+// Authenticated surfaces (RequireAuth) — 9.3 filled dashboard, timeline and
+// create-post; notifications stays a stub for 9.4.
 export function NotificationsPage(): ReactElement {
   return <StubPage title="Notifications" list />;
-}
-export function CreatePostPage(): ReactElement {
-  return <StubPage title="Create a post" />;
-}
-
-// Public reads
-export function CommunityFeedPage(): ReactElement {
-  return <StubPage title="Community" list />;
 }
 export function PostDetailPage(): ReactElement {
   return <StubPage title="Post" list />;

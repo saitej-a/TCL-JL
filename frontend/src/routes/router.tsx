@@ -39,13 +39,21 @@ import {
   VerifyEmailPendingPage,
 } from "@/pages";
 import { PublicOnly } from "@/routes/PublicOnly";
+import { PublicShell } from "@/routes/PublicShell";
 import { RequireAuth } from "@/routes/RequireAuth";
 
 export const router = createBrowserRouter([
   { path: "/", element: <LandingPage /> },
-  // Public reads (05 §3.1: All roles, visitors can read)
-  { path: "/community", element: <CommunityFeedPage /> },
-  { path: "/community/posts/:id", element: <PostDetailPage /> },
+  // Public reads (05 §3.1: All roles, visitors can read) that §7.6 designs
+  // INSIDE the app frame — the community section renders in AppShell via
+  // PublicShell. Public access is an API property (D1), not a chromeless page.
+  {
+    element: <PublicShell />,
+    children: [
+      { path: "/community", element: <CommunityFeedPage /> },
+      { path: "/community/posts/:id", element: <PostDetailPage /> },
+    ],
+  },
   { path: "/analytics", element: <AnalyticsPage /> },
   { path: "/about", element: <AboutPage /> },
   { path: "/privacy", element: <PrivacyPage /> },
