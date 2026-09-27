@@ -18,7 +18,7 @@ from apps.accounts.models import User
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
     ordering = ("email",)
-    list_display = ("email", "is_staff", "is_active", "banned_until", "date_joined")
+    list_display = ("email", "is_staff", "is_active", "banned_until", "date_joined","is_verified")
     list_filter = ("is_staff", "is_active")
     search_fields = ("email",)
     readonly_fields = ("last_login", "date_joined")
@@ -28,7 +28,7 @@ class UserAdmin(BaseUserAdmin):
         (None, {"fields": ("email", "password")}),
         (
             "Permissions",
-            {"fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions")},
+            {"fields": ("is_active", "is_verified", "is_staff", "is_superuser", "groups", "user_permissions")},
         ),
         # Suspension boundary (08 §6.1): NULL while banned = permanent; a future
         # timestamp is a temporary suspension that auto-reinstates.

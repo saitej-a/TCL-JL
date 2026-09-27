@@ -1,0 +1,63 @@
+{
+  "contract": "1.0.0",
+  "flavor": "core",
+  "milestone": "v1.0",
+  "phases": [
+    {
+      "number": "1",
+      "name": "Project Foundation, Docker & Environment Setup",
+      "status": "pending"
+    },
+    {
+      "number": "2",
+      "name": "Authentication, Identity & Custom User System",
+      "status": "complete"
+    },
+    {
+      "number": "3",
+      "name": "Candidate Profiles & Public Identity Controls",
+      "status": "complete"
+    },
+    {
+      "number": "4",
+      "name": "Recruitment Timeline Engine",
+      "status": "complete"
+    },
+    {
+      "number": "5",
+      "name": "Community Discussions & Forum System",
+      "status": "in_progress"
+    },
+    {
+      "number": "6",
+      "name": "In-App Notifications & FCM Web Push System",
+      "status": "pending"
+    },
+    {
+      "number": "7",
+      "name": "Community Analytics & Privacy Engine",
+      "status": "pending"
+    },
+    {
+      "number": "8",
+      "name": "Moderation, Anti-Spam & Administration",
+      "status": "pending"
+    },
+    {
+      "number": "9",
+      "name": "Frontend Single Page Application (React + Tailwind)",
+      "status": "pending"
+    },
+    {
+      "number": "10",
+      "name": "Security Audits, E2E Testing, Seed Data & Launch Readiness",
+      "status": "pending"
+    }
+  ],
+  "next": {
+    "command": "/gsd:progress --next",
+    "label": "Advance to the next step",
+    "reason": "Phase 9.4 of 32 · executing"
+  },
+  "updated_at": "2026-09-24T10:30:09.932Z"
+}

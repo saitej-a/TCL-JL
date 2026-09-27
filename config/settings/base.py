@@ -362,8 +362,19 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
 
 # --- Notifications & push (Phase 6.2) ------------------------------------------------
-PUSH_BACKEND = os.environ.get("PUSH_BACKEND", "auto")  # firebase | recording | auto (R: D1)
+PUSH_BACKEND = os.environ.get("PUSH_BACKEND", "auto")  # firebase | webpush | recording | auto
 FIREBASE_CREDENTIALS_PATH = os.environ.get("FIREBASE_CREDENTIALS_PATH", "")
+# 9.4 D2: browser-standards Web Push. The private key signs, the public key is
+# handed to `PushManager.subscribe()` by the SPA, and the subject is the operator
+# contact the push service may use to complain about this sender. Absent keys keep
+# the credential-free dev posture intact: `auto` falls back to the recording
+# backend rather than failing startup (mirrors FIREBASE_CREDENTIALS_PATH above).
+# Generate a pair with `python -m py_vapid --applicationServerKey` (or any VAPID
+# tool); never commit a real key — `.env` is gitignored, `.env.example` shows the
+# names. Keys are read at call time, so a restart applies a rotation.
+VAPID_PUBLIC_KEY = os.environ.get("VAPID_PUBLIC_KEY", "")
+VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY", "")
+VAPID_SUBJECT = os.environ.get("VAPID_SUBJECT", "mailto:no-reply@tcsjoiningtracker.local")
 VOTE_MILESTONE_THRESHOLDS = [10, 25, 50, 100, 250, 500]  # §10, read at call time (D4)
 THREAD_PUSH_DEBOUNCE_SECONDS = 900  # §10.1, read at call time (D3)
 PUSH_MAX_RETRIES = int(os.environ.get("PUSH_MAX_RETRIES", "3"))

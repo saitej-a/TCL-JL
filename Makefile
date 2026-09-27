@@ -9,7 +9,7 @@ down:          ## Stop and remove the dev stack (volumes preserved)
 	docker compose down
 
 Vol-del:
-	docker
+	docker compose rem
 
 logs:          ## Follow logs (last 100 lines)
 	docker compose logs -f --tail=100
