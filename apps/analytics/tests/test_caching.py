@@ -111,7 +111,14 @@ def test_warmup_covers_every_endpoint_without_filters(make_profile):
     _seed(make_profile)
 
     endpoints = [endpoint for endpoint, _ in warm_targets()]
-    assert endpoints == ["overview", "batches", "hiring-types", "regions", "public-stats"]
+    assert endpoints == [
+        "overview",
+        "batches",
+        "hiring-types",
+        "regions",
+        "status-distribution",
+        "public-stats",
+    ]
 
     # Nothing is stored until the task (or a request) actually builds a payload.
     for endpoint, _ in warm_targets():
@@ -123,7 +130,7 @@ def test_warm_analytics_cache_populates_every_default_key(make_profile):
 
     _seed(make_profile)
 
-    assert warm_analytics_cache() == 5
+    assert warm_analytics_cache() == 6
 
     for endpoint, _ in warm_targets():
         payload = cache.get(analytics_cache_key(endpoint))

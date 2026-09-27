@@ -26,6 +26,7 @@ from apps.analytics.cache import (
     ENDPOINT_OVERVIEW,
     ENDPOINT_PUBLIC_STATS,
     ENDPOINT_REGIONS,
+    ENDPOINT_STATUS_DISTRIBUTION,
     cached_payload,
 )
 from apps.analytics.throttles import AnalyticsReadRateThrottle
@@ -117,6 +118,25 @@ class AnalyticsRegionView(AnalyticsReadView):
 
     def build(self, **filters: str) -> dict[str, Any]:
         return services.get_region_breakdown(**filters)
+
+
+class StatusDistributionView(AnalyticsReadView):
+    """`GET /api/v1/analytics/status-distribution/` — §7.9's distribution block (9.4 D1).
+
+    The one aggregate 9.4 adds, and the only analytics read that consumes all three
+    filters at once. Anonymous like its siblings (04 §6's "Public aggregate
+    statistics"), with the shared `analytics_reads` scope — the slice counts it
+    exposes are exactly what the scope exists to stop being walked cheaply.
+
+    04 §52's `/analytics/timeline/` remains deliberately absent (7.2 D-10); this
+    route is not it.
+    """
+
+    endpoint = ENDPOINT_STATUS_DISTRIBUTION
+    accepted_filters = ("batch", "hiring_type", "region")
+
+    def build(self, **filters: str) -> dict[str, Any]:
+        return services.get_status_distribution(**filters)
 
 
 class PublicStatsView(AnalyticsReadView):

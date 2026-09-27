@@ -72,6 +72,53 @@ RECEIVED_JL_STATUSES = {
     CandidateProfile.Status.JOINED,
 }
 
+# §7.9's status-distribution rows (9.4 D1), in the order the screen draws them.
+# The fifth row is the spec's "Survey / Offer stage"; the sixth is ours — the model
+# carries WITHDRAWN (terminal, 3.1 D1) and OTHER, and §7.9's mockup has no row for
+# either. Folding them into the survey/offer row would misstate that cohort's
+# stage, and dropping them would make the rows stop summing to `total_in_cohort`,
+# so they get their own labelled row and a recorded divergence instead.
+# The map is deliberately total over `Status`: a status that belonged to no group
+# would silently vanish from a public distribution, so the test module pins
+# completeness against `CandidateProfile.Status.values` rather than trusting this
+# tuple to stay in step with the model.
+STATUS_DISTRIBUTION_GROUPS: tuple[tuple[str, str, frozenset[str]], ...] = (
+    (
+        "WAITING_FOR_JL",
+        "Waiting for JL",
+        frozenset({CandidateProfile.Status.WAITING_FOR_JOINING_LETTER}),
+    ),
+    (
+        "JL_RECEIVED",
+        "JL Received",
+        frozenset({CandidateProfile.Status.JOINING_LETTER_RECEIVED}),
+    ),
+    (
+        "JOINING_DATE_RECEIVED",
+        "Joining Date Received",
+        frozenset({CandidateProfile.Status.JOINING_DATE_RECEIVED}),
+    ),
+    ("JOINED", "Joined TCS", frozenset({CandidateProfile.Status.JOINED})),
+    (
+        "SURVEY_OFFER_STAGE",
+        "Survey / Offer stage",
+        frozenset(
+            {
+                CandidateProfile.Status.REGISTERED,
+                CandidateProfile.Status.INTERVIEWED,
+                CandidateProfile.Status.SELECTED,
+                CandidateProfile.Status.OFFER_RECEIVED,
+                CandidateProfile.Status.READINESS_SURVEY,
+            }
+        ),
+    ),
+    (
+        "WITHDRAWN_OTHER",
+        "Withdrawn / Other",
+        frozenset({CandidateProfile.Status.WITHDRAWN, CandidateProfile.Status.OTHER}),
+    ),
+)
+
 
 class InvalidAnalyticsFilter(ValueError):
     """An unknown ``?filter=`` value (7.2 D-12).
@@ -414,6 +461,70 @@ def get_region_breakdown(
         )
 
     floored = apply_row_floor(results)
+    if floored is None:
+        return suppression_payload()
+
+    return _with_metadata(
+        {
+            "data_source": DATA_SOURCE_LABEL,
+            "disclaimer": DISCLAIMER_TEXT,
+            "suppressed": False,
+            "total_in_cohort": total,
+            "results": floored,
+        }
+    )
+
+
+def get_status_distribution(
+    batch: str | None = None,
+    hiring_type: str | None = None,
+    region: str | None = None,
+) -> dict[str, Any]:
+    """§7.9's candidate-status distribution over one filtered slice (9.4 D1).
+
+    The only new backend surface 9.4 ships (CONTEXT D1): §7.9's distribution block
+    is a status breakdown of the filtered cohort, which none of 7.2's endpoints
+    answer — they group by batch, stream or region, never by status.
+
+    All three filters apply **together** (intersection, not union), share one cache
+    key and are validated by the caller through `validate_filters`. Suppression is
+    7.2's, unchanged: a slice below the floor returns the 04 §53 payload, and a row
+    below it is dropped entirely — never zeroed (D-01/D-02/D-03). A zero-count row
+    is therefore dropped by the same rule rather than special-cased, which is also
+    why an empty status group never appears as `0 (0.0%)`.
+    """
+    qs = CandidateProfile.objects.all()
+    if batch:
+        qs = qs.filter(batch=batch)
+    if hiring_type:
+        qs = qs.filter(hiring_type=hiring_type)
+    if region:
+        qs = qs.filter(region__iexact=region)
+
+    total = qs.count()
+    is_suppressed, payload = check_privacy_suppression(total)
+    if is_suppressed and payload:
+        return payload
+
+    counts = {
+        row["current_status"]: row["n"]
+        for row in qs.values("current_status").annotate(n=Count("id"))
+    }
+
+    rows = [
+        {
+            "status_group": key,
+            "label": label,
+            "candidate_count": sum(counts.get(status, 0) for status in statuses),
+            "share": round(
+                sum(counts.get(status, 0) for status in statuses) / total * 100,
+                1,
+            ),
+        }
+        for key, label, statuses in STATUS_DISTRIBUTION_GROUPS
+    ]
+
+    floored = apply_row_floor(rows)
     if floored is None:
         return suppression_payload()
 

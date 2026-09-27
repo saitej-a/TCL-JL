@@ -24,6 +24,7 @@ from apps.analytics.views import (
     AnalyticsOverviewView,
     AnalyticsRegionView,
     PublicStatsView,
+    StatusDistributionView,
 )
 from apps.candidates.models import CandidateProfile
 
@@ -34,6 +35,7 @@ ALL_ENDPOINTS = (
     "analytics-batches",
     "analytics-hiring-types",
     "analytics-regions",
+    "analytics-status-distribution",
     "public-stats",
 )
 
@@ -286,6 +288,7 @@ def test_analytics_read_throttle_is_registered_and_engages(api_client, make_prof
         AnalyticsBatchView,
         AnalyticsHiringTypeView,
         AnalyticsRegionView,
+        StatusDistributionView,
         PublicStatsView,
     ):
         assert view_cls.throttle_scope == AnalyticsReadRateThrottle.scope

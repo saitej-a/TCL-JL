@@ -16,6 +16,7 @@ from apps.analytics.views import (
     AnalyticsOverviewView,
     AnalyticsRegionView,
     PublicStatsView,
+    StatusDistributionView,
 )
 
 urlpatterns = [
@@ -27,5 +28,10 @@ urlpatterns = [
         name="analytics-hiring-types",
     ),
     path("analytics/regions/", AnalyticsRegionView.as_view(), name="analytics-regions"),
+    path(
+        "analytics/status-distribution/",
+        StatusDistributionView.as_view(),
+        name="analytics-status-distribution",
+    ),
     path("public/stats/", PublicStatsView.as_view(), name="public-stats"),
 ]

@@ -30,6 +30,7 @@ ENDPOINT_OVERVIEW = "overview"
 ENDPOINT_BATCHES = "batches"
 ENDPOINT_HIRING_TYPES = "hiring-types"
 ENDPOINT_REGIONS = "regions"
+ENDPOINT_STATUS_DISTRIBUTION = "status-distribution"
 ENDPOINT_PUBLIC_STATS = "public-stats"
 
 # Bumped when a payload shape changes: a versioned prefix means a deploy can never
@@ -96,5 +97,6 @@ def warm_targets() -> list[tuple[str, Callable[[], dict[str, Any]]]]:
         (ENDPOINT_BATCHES, services.get_batch_breakdown),
         (ENDPOINT_HIRING_TYPES, services.get_hiring_type_breakdown),
         (ENDPOINT_REGIONS, services.get_region_breakdown),
+        (ENDPOINT_STATUS_DISTRIBUTION, services.get_status_distribution),
         (ENDPOINT_PUBLIC_STATS, services.get_public_stats),
     ]
